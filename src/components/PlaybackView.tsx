@@ -29,7 +29,7 @@ export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProp
     // If the slider hasn't been moved by the user for a bit, let it sync with device status
     const timer = setTimeout(() => {
       setLocalVolume(null);
-    }, 2000);
+    }, 4000); // Increased to 4 seconds to prevent jerking back when device takes time to respond
     return () => clearTimeout(timer);
   }, [status?.vol]);
 
@@ -178,9 +178,9 @@ export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProp
               <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'wifi', numericMode: '10', label: 'Wi-Fi' },
-                  { id: 'line-in', numericMode: '20', label: 'Aux' },
-                  { id: 'bluetooth', numericMode: '31', label: 'Bluetooth' },
-                  { id: 'optical', numericMode: '40', label: 'Optical' },
+                  { id: 'line-in', numericMode: '40', label: 'Aux' },
+                  { id: 'bluetooth', numericMode: '41', label: 'Bluetooth' },
+                  { id: 'optical', numericMode: '43', label: 'Optical' },
                   { id: 'udisk', numericMode: '11', label: 'USB' }
                 ].map(src => {
                   const isActive = currentMode === src.numericMode || (src.id === 'udisk' && (currentMode === '43' || currentMode === '11'));

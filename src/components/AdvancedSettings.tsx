@@ -62,9 +62,9 @@ export function AdvancedSettings({ deviceStatus, playerStatus, sendCommand }: Ad
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {[
                 { id: 'wifi', numericMode: '10', label: 'Wi-Fi / Network' },
-                { id: 'line-in', numericMode: '20', label: 'Line In / Aux' },
-                { id: 'bluetooth', numericMode: '31', label: 'Bluetooth' },
-                { id: 'optical', numericMode: '40', label: 'Optical' },
+                { id: 'line-in', numericMode: '40', label: 'Line In / Aux' },
+                { id: 'bluetooth', numericMode: '41', label: 'Bluetooth' },
+                { id: 'optical', numericMode: '43', label: 'Optical' },
                 { id: 'udisk', numericMode: '11', label: 'USB' } // note: udisk mode can vary, 11 or 43 sometimes
               ].map(src => {
                 const isActive = currentMode === src.numericMode || (src.id === 'udisk' && (currentMode === '43' || currentMode === '11'));
