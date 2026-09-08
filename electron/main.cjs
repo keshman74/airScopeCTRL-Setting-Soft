@@ -20,7 +20,11 @@ function createWindow() {
   } else {
     // In production, we run the bundled Express server
     // which serves the static files and API proxies on port 3000
-    require(path.join(__dirname, '../dist/server.cjs'));
+    try {
+      require(path.join(__dirname, '../dist/server.cjs'));
+    } catch (e) {
+      console.error('Failed to load local server (ensure you ran `npm run build`):', e);
+    }
     
     // Give the Express server a moment to bind to the port
     setTimeout(() => {
