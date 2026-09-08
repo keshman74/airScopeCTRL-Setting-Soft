@@ -18,6 +18,13 @@ export interface PlayerStatus {
   mute: string;
 }
 
+export interface MetaInfo {
+  Title: string;
+  Artist: string;
+  Album: string;
+  albumArtURI?: string;
+}
+
 export interface DeviceStatus {
   uuid: string;
   DeviceName: string;

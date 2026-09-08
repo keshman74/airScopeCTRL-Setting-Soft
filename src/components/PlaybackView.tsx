@@ -1,9 +1,10 @@
-import React from 'react';
-import { PlayerStatus } from '../types';
-import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { PlayerStatus, MetaInfo } from '../types';
+import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Disc3 } from 'lucide-react';
 
 interface PlaybackViewProps {
   status: PlayerStatus | null;
+  metaInfo?: MetaInfo | null;
   sendCommand: (cmd: string) => void;
 }
 
@@ -21,7 +22,17 @@ function decodeHexStr(str: string): string {
   }
 }
 
-export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
+export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProps) {
+  const [localVolume, setLocalVolume] = useState<number | null>(null);
+
+  useEffect(() => {
+    // If the slider hasn't been moved by the user for a bit, let it sync with device status
+    const timer = setTimeout(() => {
+      setLocalVolume(null);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [status?.vol]);
+
   if (!status) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -31,12 +42,25 @@ export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
   }
 
   const isPlaying = status.status === 'play';
-  const volume = parseInt(status.vol, 10) || 0;
+  const deviceVolume = parseInt(status.vol, 10) || 0;
+  const volume = localVolume !== null ? localVolume : deviceVolume;
   const isMuted = status.mute === '1';
 
-  const decodedTitle = decodeHexStr(status.Title) || 'Unknown Title';
-  const decodedArtist = decodeHexStr(status.Artist) || 'Unknown Artist';
-  const decodedAlbum = decodeHexStr(status.Album);
+  const decodedTitle = decodeHexStr(metaInfo?.Title || status.Title) || 'Unknown Title';
+  const decodedArtist = decodeHexStr(metaInfo?.Artist || status.Artist) || 'Unknown Artist';
+  const decodedAlbum = decodeHexStr(metaInfo?.Album || status.Album);
+  
+  const albumArt = metaInfo?.albumArtURI;
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalVolume(parseInt(e.target.value, 10));
+  };
+
+  const handleVolumeRelease = () => {
+    if (localVolume !== null) {
+      sendCommand(`setPlayerCmd:vol:${localVolume}`);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-8">
@@ -44,11 +68,26 @@ export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
         <div className="flex flex-col md:flex-row gap-12 items-center">
           
           {/* Album Art / Status Indicator */}
-          <div className="w-64 h-64 shrink-0 rounded-xl bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-[#333] flex items-center justify-center relative overflow-hidden shadow-inner">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_0%,transparent_100%)]" />
-            <div className={`w-32 h-32 rounded-full border-[4px] ${isPlaying ? 'border-emerald-500/30' : 'border-zinc-800'} flex items-center justify-center`}>
-              <div className={`w-24 h-24 rounded-full ${isPlaying ? 'bg-emerald-500/20' : 'bg-zinc-800/50'} animate-pulse`}></div>
-            </div>
+          <div className="w-64 h-64 shrink-0 rounded-xl bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-[#333] flex items-center justify-center relative overflow-hidden shadow-inner group">
+            {albumArt ? (
+              <img 
+                src={albumArt} 
+                alt="Album Art" 
+                className="w-full h-full object-cover rounded-xl"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <>
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_0%,transparent_100%)]" />
+                <div className={`w-32 h-32 rounded-full border-[4px] ${isPlaying ? 'border-emerald-500/30' : 'border-zinc-800'} flex items-center justify-center`}>
+                  <div className={`w-24 h-24 rounded-full ${isPlaying ? 'bg-emerald-500/20 animate-pulse' : 'bg-zinc-800/50 flex items-center justify-center'}`}>
+                    {!isPlaying && <Disc3 size={32} className="text-zinc-600" />}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Track Info & Controls */}
@@ -113,7 +152,9 @@ export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
                     min="0"
                     max="100"
                     value={volume}
-                    onChange={(e) => sendCommand(`setPlayerCmd:vol:${e.target.value}`)}
+                    onChange={handleVolumeChange}
+                    onMouseUp={handleVolumeRelease}
+                    onTouchEnd={handleVolumeRelease}
                     className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
                   />
                 </div>

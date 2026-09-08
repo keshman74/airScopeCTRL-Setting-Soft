@@ -20,7 +20,8 @@ export default function App() {
     ip, 
     isConnected, 
     playerStatus, 
-    deviceStatus, 
+    deviceStatus,
+    metaInfo,
     error, 
     connect, 
     disconnect, 
@@ -42,13 +43,13 @@ export default function App() {
         ) : (
           <div className="h-full">
             {currentView === 'playback' && (
-              <PlaybackView status={playerStatus} sendCommand={sendCommand} />
+              <PlaybackView status={playerStatus} metaInfo={metaInfo} sendCommand={sendCommand} />
             )}
             {currentView === 'eq' && (
               <EQSettings status={playerStatus} sendCommand={sendCommand} />
             )}
             {currentView === 'advanced' && (
-              <AdvancedSettings deviceStatus={deviceStatus} sendCommand={sendCommand} />
+              <AdvancedSettings deviceStatus={deviceStatus} playerStatus={playerStatus} sendCommand={sendCommand} />
             )}
             {currentView === 'system' && (
               <SystemInfo deviceStatus={deviceStatus} />

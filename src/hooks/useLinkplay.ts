@@ -1,11 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { PlayerStatus, DeviceStatus } from '../types';
+import { PlayerStatus, DeviceStatus, MetaInfo } from '../types';
 
 export function useLinkplay() {
   const [ip, setIp] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
+  const [metaInfo, setMetaInfo] = useState<MetaInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
 
@@ -46,6 +47,17 @@ export function useLinkplay() {
         setPlayerStatus(pStatus);
         setIsConnected(true);
         setError(null);
+        
+        if (pStatus.status === 'play') {
+          const mInfo = await sendCommand('getMetaInfo');
+          if (mInfo && typeof mInfo === 'object') {
+            // Some linkplay devices return relative URLs for album art. Prepend the IP if so.
+            if (mInfo.albumArtURI && mInfo.albumArtURI.startsWith('/')) {
+              mInfo.albumArtURI = `http://${ip}${mInfo.albumArtURI}`;
+            }
+            setMetaInfo(mInfo);
+          }
+        }
       }
       
       const dStatus = await sendCommand('getDeviceStatus');
@@ -68,6 +80,7 @@ export function useLinkplay() {
     setIsPolling(false);
     setPlayerStatus(null);
     setDeviceStatus(null);
+    setMetaInfo(null);
   }, []);
 
   useEffect(() => {
@@ -91,6 +104,7 @@ export function useLinkplay() {
     isConnected,
     playerStatus,
     deviceStatus,
+    metaInfo,
     error,
     connect,
     disconnect,

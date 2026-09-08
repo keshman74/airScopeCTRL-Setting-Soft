@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { DeviceStatus } from '../types';
+import { DeviceStatus, PlayerStatus } from '../types';
 import { Save, AlertTriangle, LogOut, RotateCcw } from 'lucide-react';
 
 interface AdvancedSettingsProps {
   deviceStatus: DeviceStatus | null;
+  playerStatus: PlayerStatus | null;
   sendCommand: (cmd: string) => Promise<any>;
 }
 
-export function AdvancedSettings({ deviceStatus, sendCommand }: AdvancedSettingsProps) {
+export function AdvancedSettings({ deviceStatus, playerStatus, sendCommand }: AdvancedSettingsProps) {
   const [deviceName, setDeviceName] = useState('');
   const [ssid, setSsid] = useState('');
 
@@ -46,6 +47,8 @@ export function AdvancedSettings({ deviceStatus, sendCommand }: AdvancedSettings
     }
   };
 
+  const currentMode = playerStatus?.mode || '';
+
   return (
     <div className="max-w-4xl mx-auto py-12 px-8">
       <div className="bg-[#111] border border-[#222] rounded-2xl p-8 shadow-2xl">
@@ -58,20 +61,27 @@ export function AdvancedSettings({ deviceStatus, sendCommand }: AdvancedSettings
             <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-4">Input Source Selection</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {[
-                { id: 'wifi', label: 'Wi-Fi / Network' },
-                { id: 'line-in', label: 'Line In / Aux' },
-                { id: 'bluetooth', label: 'Bluetooth' },
-                { id: 'optical', label: 'Optical' },
-                { id: 'udisk', label: 'USB' }
-              ].map(src => (
-                <button
-                  key={src.id}
-                  onClick={() => handleSwitchMode(src.id)}
-                  className="bg-[#0a0a0a] border border-[#333] hover:border-emerald-500 hover:bg-[#151515] text-zinc-300 px-4 py-4 rounded-xl text-sm font-medium transition-all"
-                >
-                  {src.label}
-                </button>
-              ))}
+                { id: 'wifi', numericMode: '10', label: 'Wi-Fi / Network' },
+                { id: 'line-in', numericMode: '20', label: 'Line In / Aux' },
+                { id: 'bluetooth', numericMode: '31', label: 'Bluetooth' },
+                { id: 'optical', numericMode: '40', label: 'Optical' },
+                { id: 'udisk', numericMode: '11', label: 'USB' } // note: udisk mode can vary, 11 or 43 sometimes
+              ].map(src => {
+                const isActive = currentMode === src.numericMode || (src.id === 'udisk' && (currentMode === '43' || currentMode === '11'));
+                return (
+                  <button
+                    key={src.id}
+                    onClick={() => handleSwitchMode(src.id)}
+                    className={`px-4 py-4 rounded-xl text-sm font-medium transition-all border ${
+                      isActive 
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)]' 
+                        : 'bg-[#0a0a0a] border-[#333] hover:border-[#555] hover:bg-[#151515] text-zinc-300'
+                    }`}
+                  >
+                    {src.label}
+                  </button>
+                )
+              })}
             </div>
           </section>
 
