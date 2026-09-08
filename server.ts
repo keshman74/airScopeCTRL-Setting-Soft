@@ -1,36 +1,33 @@
 import express from "express";
 import path from "path";
-import http from "http";
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Disable strict TLS verification for internal network devices with self-signed certs
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
   // Middleware to proxy requests to the Linkplay device
-  // Example usage from frontend: /api/proxy?ip=192.168.1.100&command=getPlayerStatus
-  app.get("/api/proxy", (req, res) => {
+  app.get("/api/proxy", async (req, res) => {
     const targetIp = req.query.ip as string;
     const command = req.query.command as string;
+    const protocol = req.query.protocol === 'https' ? 'https' : 'http';
 
     if (!targetIp || !command) {
       return res.status(400).json({ error: "Missing ip or command parameter" });
     }
 
-    const targetUrl = `http://${targetIp}/httpapi.asp?command=${encodeURIComponent(command)}`;
-
-    http.get(targetUrl, (targetRes) => {
-      let data = '';
-      targetRes.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      targetRes.on('end', () => {
-        res.status(targetRes.statusCode || 200).send(data);
-      });
-    }).on('error', (err) => {
+    const targetUrl = `${protocol}://${targetIp}/httpapi.asp?command=${encodeURIComponent(command)}`;
+    
+    try {
+      const response = await fetch(targetUrl);
+      const data = await response.text();
+      res.status(response.status).send(data);
+    } catch (err: any) {
       console.error(`Proxy error to ${targetUrl}:`, err.message);
       res.status(502).json({ error: "Failed to reach device", details: err.message });
-    });
+    }
   });
 
   // Vite middleware for development

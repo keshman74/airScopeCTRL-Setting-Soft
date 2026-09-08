@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import { Wifi, AlertCircle } from 'lucide-react';
+import { Wifi, AlertCircle, Lock } from 'lucide-react';
 
 interface ConnectionViewProps {
-  onConnect: (ip: string) => void;
+  onConnect: (ip: string, protocol: 'http' | 'https') => void;
   error: string | null;
 }
 
 export function ConnectionView({ onConnect, error }: ConnectionViewProps) {
   const [ip, setIp] = useState('');
+  const [protocol, setProtocol] = useState<'http' | 'https'>('http');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (ip.trim()) {
-      onConnect(ip.trim());
+      onConnect(ip.trim(), protocol);
     }
   };
 
@@ -39,8 +40,29 @@ export function ConnectionView({ onConnect, error }: ConnectionViewProps) {
               value={ip}
               onChange={(e) => setIp(e.target.value)}
               placeholder="e.g. 192.168.1.100"
-              className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors font-mono"
+              className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-4 py-3 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors font-mono mb-4"
             />
+
+            <div className="flex items-center justify-between p-4 rounded-md border border-[#333] bg-[#0a0a0a]">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${protocol === 'https' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#222] text-zinc-500'}`}>
+                  {protocol === 'https' ? <Lock size={16} /> : <Wifi size={16} />}
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-zinc-200">Use Secure Connection</div>
+                  <div className="text-xs text-zinc-500">Required for A97/A98 chips</div>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={protocol === 'https'}
+                  onChange={(e) => setProtocol(e.target.checked ? 'https' : 'http')}
+                />
+                <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
           </div>
 
           {error && (

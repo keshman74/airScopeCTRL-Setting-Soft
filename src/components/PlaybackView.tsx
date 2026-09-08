@@ -62,6 +62,12 @@ export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProp
     }
   };
 
+  const handleSwitchMode = (mode: string) => {
+    sendCommand(`setPlayerCmd:switchmode:${mode}`);
+  };
+
+  const currentMode = status.mode || '';
+
   return (
     <div className="max-w-4xl mx-auto py-12 px-8">
       <div className="bg-[#111] border border-[#222] rounded-2xl p-8 shadow-2xl">
@@ -97,7 +103,8 @@ export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProp
                 {status.mode === '10' ? 'Wi-Fi Streaming' : 
                  status.mode === '20' ? 'Aux In' : 
                  status.mode === '31' ? 'Bluetooth' : 
-                 status.mode === '40' ? 'Optical' : 'Playing'}
+                 status.mode === '40' ? 'Optical' : 
+                 status.mode === '43' || status.mode === '11' ? 'USB' : 'Playing'}
               </div>
               <h2 className="text-4xl font-bold text-white truncate" title={decodedTitle}>
                 {decodedTitle}
@@ -165,6 +172,35 @@ export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProp
               </div>
             </div>
             
+            {/* Input Sources */}
+            <div className="pt-6">
+              <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Input Source</h3>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'wifi', numericMode: '10', label: 'Wi-Fi' },
+                  { id: 'line-in', numericMode: '20', label: 'Aux' },
+                  { id: 'bluetooth', numericMode: '31', label: 'Bluetooth' },
+                  { id: 'optical', numericMode: '40', label: 'Optical' },
+                  { id: 'udisk', numericMode: '11', label: 'USB' }
+                ].map(src => {
+                  const isActive = currentMode === src.numericMode || (src.id === 'udisk' && (currentMode === '43' || currentMode === '11'));
+                  return (
+                    <button
+                      key={src.id}
+                      onClick={() => handleSwitchMode(src.id)}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
+                        isActive 
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
+                          : 'bg-[#0a0a0a] border-[#333] hover:border-[#555] hover:bg-[#151515] text-zinc-400'
+                      }`}
+                    >
+                      {src.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

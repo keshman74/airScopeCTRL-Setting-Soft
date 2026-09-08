@@ -3,6 +3,7 @@ import { PlayerStatus, DeviceStatus, MetaInfo } from '../types';
 
 export function useLinkplay() {
   const [ip, setIp] = useState<string>('');
+  const [protocol, setProtocol] = useState<'http' | 'https'>('http');
   const [isConnected, setIsConnected] = useState(false);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
@@ -18,7 +19,7 @@ export function useLinkplay() {
       return null;
     }
     try {
-      const url = `/api/proxy?ip=${encodeURIComponent(ip)}&command=${encodeURIComponent(command)}`;
+      const url = `/api/proxy?ip=${encodeURIComponent(ip)}&protocol=${protocol}&command=${encodeURIComponent(command)}`;
       const res = await fetch(url, { method: 'GET' });
       
       if (!res.ok) {
@@ -53,7 +54,7 @@ export function useLinkplay() {
           if (mInfo && typeof mInfo === 'object') {
             // Some linkplay devices return relative URLs for album art. Prepend the IP if so.
             if (mInfo.albumArtURI && mInfo.albumArtURI.startsWith('/')) {
-              mInfo.albumArtURI = `http://${ip}${mInfo.albumArtURI}`;
+              mInfo.albumArtURI = `${protocol}://${ip}${mInfo.albumArtURI}`;
             }
             setMetaInfo(mInfo);
           }
@@ -67,10 +68,11 @@ export function useLinkplay() {
     } catch (e) {
       // error handled in sendCommand
     }
-  }, [ip, sendCommand]);
+  }, [ip, protocol, sendCommand]);
 
-  const connect = useCallback((newIp: string) => {
+  const connect = useCallback((newIp: string, newProtocol: 'http' | 'https' = 'http') => {
     setIp(newIp);
+    setProtocol(newProtocol);
     setIsPolling(true);
   }, []);
 
