@@ -38,4 +38,4 @@ export interface DeviceStatus {
   ESSID: string;
 }
 
-export type ViewMode = 'playback' | 'eq' | 'system' | 'terminal';
+export type ViewMode = 'playback' | 'eq' | 'system' | 'terminal' | 'advanced';

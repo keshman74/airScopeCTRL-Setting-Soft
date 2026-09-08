@@ -10,6 +10,7 @@ import { Sidebar } from './components/Sidebar';
 import { ConnectionView } from './components/ConnectionView';
 import { PlaybackView } from './components/PlaybackView';
 import { EQSettings } from './components/EQSettings';
+import { AdvancedSettings } from './components/AdvancedSettings';
 import { SystemInfo } from './components/SystemInfo';
 import { TerminalView } from './components/TerminalView';
 
@@ -45,6 +46,9 @@ export default function App() {
             )}
             {currentView === 'eq' && (
               <EQSettings status={playerStatus} sendCommand={sendCommand} />
+            )}
+            {currentView === 'advanced' && (
+              <AdvancedSettings deviceStatus={deviceStatus} sendCommand={sendCommand} />
             )}
             {currentView === 'system' && (
               <SystemInfo deviceStatus={deviceStatus} />

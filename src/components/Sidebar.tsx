@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewMode } from '../types';
-import { PlayCircle, Sliders, Info, TerminalSquare, Power } from 'lucide-react';
+import { PlayCircle, Sliders, Info, TerminalSquare, Power, Settings } from 'lucide-react';
 
 interface SidebarProps {
   currentView: ViewMode;
@@ -13,6 +13,7 @@ export function Sidebar({ currentView, onViewChange, isConnected, onDisconnect }
   const navItems = [
     { id: 'playback', label: 'Playback', icon: PlayCircle },
     { id: 'eq', label: 'Audio & EQ', icon: Sliders },
+    { id: 'advanced', label: 'Advanced Settings', icon: Settings },
     { id: 'system', label: 'System Info', icon: Info },
     { id: 'terminal', label: 'Raw Terminal', icon: TerminalSquare },
   ] as const;
