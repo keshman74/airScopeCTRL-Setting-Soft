@@ -1,0 +1,6 @@
+{
+  "name": "Arylic Control",
+  "description": "Control app for Linkplay and Arylic audio devices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

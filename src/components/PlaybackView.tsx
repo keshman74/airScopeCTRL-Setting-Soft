@@ -1,0 +1,114 @@
+import React from 'react';
+import { PlayerStatus } from '../types';
+import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2 } from 'lucide-react';
+
+interface PlaybackViewProps {
+  status: PlayerStatus | null;
+  sendCommand: (cmd: string) => void;
+}
+
+export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
+  if (!status) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <p className="text-zinc-500">Waiting for device status...</p>
+      </div>
+    );
+  }
+
+  const isPlaying = status.status === 'play';
+  const volume = parseInt(status.vol, 10) || 0;
+  const isMuted = status.mute === '1';
+
+  return (
+    <div className="max-w-4xl mx-auto py-12 px-8">
+      <div className="bg-[#111] border border-[#222] rounded-2xl p-8 shadow-2xl">
+        <div className="flex flex-col md:flex-row gap-12 items-center">
+          
+          {/* Album Art / Status Indicator */}
+          <div className="w-64 h-64 shrink-0 rounded-xl bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-[#333] flex items-center justify-center relative overflow-hidden shadow-inner">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_0%,transparent_100%)]" />
+            <div className={`w-32 h-32 rounded-full border-[4px] ${isPlaying ? 'border-emerald-500/30' : 'border-zinc-800'} flex items-center justify-center`}>
+              <div className={`w-24 h-24 rounded-full ${isPlaying ? 'bg-emerald-500/20' : 'bg-zinc-800/50'} animate-pulse`}></div>
+            </div>
+          </div>
+
+          {/* Track Info & Controls */}
+          <div className="flex-1 w-full space-y-8">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-emerald-400 tracking-widest uppercase">
+                {status.mode === '10' ? 'Wi-Fi Streaming' : 
+                 status.mode === '20' ? 'Aux In' : 
+                 status.mode === '31' ? 'Bluetooth' : 
+                 status.mode === '40' ? 'Optical' : 'Playing'}
+              </div>
+              <h2 className="text-4xl font-bold text-white truncate" title={status.Title || 'Unknown Title'}>
+                {status.Title || 'Unknown Title'}
+              </h2>
+              <p className="text-xl text-zinc-400 truncate" title={status.Artist || 'Unknown Artist'}>
+                {status.Artist || 'Unknown Artist'}
+              </p>
+              {status.Album && (
+                <p className="text-sm text-zinc-500 truncate" title={status.Album}>
+                  {status.Album}
+                </p>
+              )}
+            </div>
+
+            {/* Transport Controls */}
+            <div className="flex items-center gap-6">
+              <button 
+                onClick={() => sendCommand('setPlayerCmd:prev')}
+                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-400 hover:text-white transition-all border border-[#333]"
+              >
+                <SkipBack size={20} />
+              </button>
+              
+              <button 
+                onClick={() => sendCommand(isPlaying ? 'setPlayerCmd:pause' : 'setPlayerCmd:play')}
+                className="w-16 h-16 rounded-full flex items-center justify-center bg-zinc-100 hover:bg-white text-black transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              >
+                {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
+              </button>
+
+              <button 
+                onClick={() => sendCommand('setPlayerCmd:next')}
+                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-400 hover:text-white transition-all border border-[#333]"
+              >
+                <SkipForward size={20} />
+              </button>
+            </div>
+
+            {/* Volume Control */}
+            <div className="pt-8 border-t border-[#222]">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => sendCommand(`setPlayerCmd:mute:${isMuted ? '0' : '1'}`)}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isMuted ? 'text-red-400 bg-red-400/10' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                </button>
+                
+                <div className="flex-1 group relative">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={volume}
+                    onChange={(e) => sendCommand(`setPlayerCmd:vol:${e.target.value}`)}
+                    className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                  />
+                </div>
+                
+                <div className="w-12 text-right text-sm font-mono text-zinc-400">
+                  {volume}%
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
