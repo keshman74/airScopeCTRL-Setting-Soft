@@ -106,13 +106,16 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
 
           {/* Track Info & Controls */}
           <div className="flex-1 w-full space-y-8">
-            <div className="space-y-2">
-              <div className="text-xs font-semibold text-emerald-400 tracking-widest uppercase">
-                {status.mode === '10' ? 'Wi-Fi Streaming' : 
-                 status.mode === '20' ? 'Aux In' : 
-                 status.mode === '31' ? 'Bluetooth' : 
-                 status.mode === '40' ? 'Optical' : 
-                 status.mode === '43' || status.mode === '11' ? 'USB' : 'Playing'}
+            <div className="space-y-2 min-w-0">
+              <div className="text-xs font-semibold text-emerald-400 tracking-widest uppercase truncate">
+                {status.mode === '010' || status.mode === '10' ? 'Wi-Fi Streaming' : 
+                 status.mode === '020' || status.mode === '20' ? 'HTTP API' :
+                 status.mode === '040' || status.mode === '40' ? 'Line-In' : 
+                 status.mode === '041' || status.mode === '41' ? 'Bluetooth' : 
+                 status.mode === '043' || status.mode === '43' || status.mode === '040' ? 'Optical' : 
+                 status.mode === '011' || status.mode === '11' ? 'USB' : 
+                 status.mode === '031' || status.mode === '31' ? 'Spotify Connect' : 
+                 status.mode === '032' || status.mode === '32' ? 'Tidal Connect' : 'Playing'}
               </div>
               <h2 className="text-4xl font-bold text-white truncate" title={decodedTitle}>
                 {decodedTitle}
@@ -181,17 +184,23 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
             </div>
             
             {/* Input Sources */}
-            <div className="pt-6">
+            <div className="pt-6 border-t border-[#222]">
               <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Input Source</h3>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'wifi', numericMode: '10', label: 'Wi-Fi' },
-                  { id: 'line-in', numericMode: '40', label: 'Aux' },
+                  { id: 'wifi', numericMode: '10', label: 'Wi-Fi / Net' },
+                  { id: 'line-in', numericMode: '40', label: 'Line-In' },
                   { id: 'bluetooth', numericMode: '41', label: 'Bluetooth' },
-                  { id: 'optical', numericMode: '43', label: 'Optical' },
-                  { id: 'udisk', numericMode: '11', label: 'USB' }
+                  { id: 'optical', numericMode: '43', label: 'Optical' }, // Often 43
+                  { id: 'udisk', numericMode: '11', label: 'USB' },
+                  { id: 'coaxial', numericMode: '45', label: 'Coaxial' },
+                  { id: 'hdmi', numericMode: '49', label: 'HDMI ARC' },
+                  { id: 'usbdac', numericMode: '51', label: 'PC USB' }
                 ].map(src => {
-                  const isActive = currentMode === src.numericMode || (src.id === 'udisk' && (currentMode === '43' || currentMode === '11'));
+                  const currentPadded = currentMode.padStart(2, '0');
+                  const srcPadded = src.numericMode.padStart(2, '0');
+                  const isActive = currentPadded === srcPadded || (src.id === 'udisk' && (currentPadded === '11' || currentPadded === '011'));
+                  
                   return (
                     <button
                       key={src.id}
@@ -206,6 +215,22 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
                     </button>
                   )
                 })}
+              </div>
+            </div>
+
+            {/* Presets (TCP/UART) */}
+            <div className="pt-6">
+              <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Presets</h3>
+              <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(preset => (
+                  <button
+                    key={preset}
+                    onClick={() => sendCommand(`setPlayerCmd:playLocalList:${preset}`)}
+                    className="aspect-square rounded-lg text-xs font-medium transition-all border bg-[#0a0a0a] border-[#333] hover:border-[#555] hover:bg-[#151515] text-zinc-400 flex items-center justify-center"
+                  >
+                    {preset}
+                  </button>
+                ))}
               </div>
             </div>
 

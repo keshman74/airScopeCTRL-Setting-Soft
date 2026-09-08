@@ -48,7 +48,7 @@ export default function App() {
               <PlaybackView status={playerStatus} metaInfo={metaInfo} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'eq' && (
-              <EQSettings status={playerStatus} sendCommand={sendCommand} />
+              <EQSettings status={playerStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'advanced' && (
               <AdvancedSettings deviceStatus={deviceStatus} playerStatus={playerStatus} sendCommand={sendCommand} />
