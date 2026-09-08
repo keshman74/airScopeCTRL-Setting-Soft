@@ -20,7 +20,7 @@ export function Sidebar({ currentView, onViewChange, isConnected, onDisconnect }
   return (
     <div className="w-64 bg-[#111] border-r border-[#222] flex flex-col h-full shrink-0">
       <div className="p-6 border-b border-[#222]">
-        <h1 className="text-xl font-bold tracking-widest text-zinc-100 uppercase">Arylic<span className="text-zinc-500">Ctrl</span></h1>
+        <h1 className="text-xl font-bold tracking-widest text-zinc-100">airScope<span className="text-zinc-500 uppercase">CTRL</span></h1>
         <div className="flex items-center gap-2 mt-2">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500'}`} />
           <span className="text-xs text-zinc-400 font-medium tracking-wide">
