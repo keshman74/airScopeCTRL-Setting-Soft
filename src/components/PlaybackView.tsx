@@ -218,14 +218,14 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
               </div>
             </div>
 
-            {/* Presets (TCP/UART) */}
+            {/* Presets */}
             <div className="pt-6">
               <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Presets</h3>
               <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(preset => (
                   <button
                     key={preset}
-                    onClick={() => sendCommand(`setPlayerCmd:playLocalList:${preset}`)}
+                    onClick={() => sendCommand(`MCUKeyShortClick:${preset}`)}
                     className="aspect-square rounded-lg text-xs font-medium transition-all border bg-[#0a0a0a] border-[#333] hover:border-[#555] hover:bg-[#151515] text-zinc-400 flex items-center justify-center"
                   >
                     {preset}

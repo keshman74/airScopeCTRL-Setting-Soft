@@ -96,8 +96,27 @@ async function startServer() {
           
         } else if (data.type === 'send_tcp') {
           if (deviceSocket && !deviceSocket.destroyed) {
-            // Write string command directly to device
-            deviceSocket.write(data.command);
+            // Write command to device using Linkplay TCP header protocol
+            const payload = Buffer.from(data.command, 'utf-8');
+            const length = payload.length;
+            
+            let checksum = 0;
+            for (let i = 0; i < length; i++) {
+              checksum += payload[i];
+            }
+            
+            const header = Buffer.alloc(20);
+            header.writeUInt8(0x18, 0);
+            header.writeUInt8(0x96, 1);
+            header.writeUInt8(0x18, 2);
+            header.writeUInt8(0x20, 3);
+            
+            header.writeUInt32LE(length, 4);
+            header.writeUInt32LE(checksum, 8);
+            // 8 bytes reserved (all zeros) already set by alloc
+            
+            const packet = Buffer.concat([header, payload]);
+            deviceSocket.write(packet);
           } else {
             ws.send(JSON.stringify({ type: 'tcp_error', error: 'TCP socket is not connected' }));
           }
