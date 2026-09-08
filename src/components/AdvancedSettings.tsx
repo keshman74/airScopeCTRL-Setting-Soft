@@ -58,11 +58,11 @@ export function AdvancedSettings({ deviceStatus, sendCommand }: AdvancedSettings
             <h3 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-4">Input Source Selection</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               {[
-                { id: '10', label: 'Wi-Fi / Network' },
-                { id: '20', label: 'Line In / Aux' },
-                { id: '31', label: 'Bluetooth' },
-                { id: '40', label: 'Optical' },
-                { id: '43', label: 'PC-USB' }
+                { id: 'wifi', label: 'Wi-Fi / Network' },
+                { id: 'line-in', label: 'Line In / Aux' },
+                { id: 'bluetooth', label: 'Bluetooth' },
+                { id: 'optical', label: 'Optical' },
+                { id: 'udisk', label: 'USB' }
               ].map(src => (
                 <button
                   key={src.id}

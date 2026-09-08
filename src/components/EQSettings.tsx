@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PlayerStatus } from '../types';
 
 interface EQSettingsProps {
@@ -6,83 +6,45 @@ interface EQSettingsProps {
   sendCommand: (cmd: string) => void;
 }
 
+const EQ_PRESETS = [
+  { id: 0, name: 'Flat / Off' },
+  { id: 1, name: 'Classic' },
+  { id: 2, name: 'Pop' },
+  { id: 3, name: 'Jazz' },
+  { id: 4, name: 'Vocal' },
+  { id: 5, name: 'Dance' }
+];
+
 export function EQSettings({ status, sendCommand }: EQSettingsProps) {
-  const [bass, setBass] = useState(0);
-  const [treble, setTreble] = useState(0);
+  const currentEq = status?.eq ? parseInt(status.eq, 10) : 0;
 
-  // EQ comes in format like "0,0" for bass,treble. But wait, HTTP API documentation says:
-  // getPlayerStatus returns eq as a string, sometimes "0". Wait, let's just use local state and update on status change if we can parse it, otherwise rely on the user to move it.
-  
-  useEffect(() => {
-    // Attempt to parse EQ from status if it's there
-    // If not, we'll just leave it at 0. Linkplay eq is often not well documented in getPlayerStatus.
-  }, [status?.eq]);
-
-  const handleBassChange = (val: number) => {
-    setBass(val);
-    sendCommand(`setEQ:bass:${val}`);
-  };
-
-  const handleTrebleChange = (val: number) => {
-    setTreble(val);
-    sendCommand(`setEQ:treble:${val}`);
+  const setEqMode = (mode: number) => {
+    sendCommand(`setPlayerCmd:equalizer:${mode}`);
   };
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-8">
       <div className="bg-[#111] border border-[#222] rounded-2xl p-8 shadow-2xl">
-        <h2 className="text-2xl font-bold text-white mb-8 tracking-wide">Tone Controls</h2>
+        <h2 className="text-2xl font-bold text-white mb-8 tracking-wide">Equalizer Presets</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          
-          {/* Bass Control */}
-          <div className="bg-[#0a0a0a] rounded-xl p-8 border border-[#222] flex flex-col items-center">
-            <h3 className="text-zinc-400 font-medium tracking-widest uppercase mb-8">Bass</h3>
-            <div className="relative w-48 h-48 rounded-full border-4 border-[#222] flex items-center justify-center bg-[#151515] shadow-inner">
-              <input
-                type="range"
-                min="-10"
-                max="10"
-                value={bass}
-                onChange={(e) => handleBassChange(parseInt(e.target.value))}
-                className="absolute w-full h-full opacity-0 cursor-pointer z-10"
-              />
-              <div className="text-4xl font-mono text-emerald-400">
-                {bass > 0 ? `+${bass}` : bass}
-              </div>
-              <div className="absolute bottom-4 text-xs text-zinc-600">dB</div>
-            </div>
-            <div className="flex justify-between w-full mt-8 px-4 text-xs font-mono text-zinc-500">
-              <span>-10</span>
-              <span>0</span>
-              <span>+10</span>
-            </div>
-          </div>
+        <p className="text-zinc-400 mb-8">
+          Select a predefined equalizer profile. (Direct Bass/Treble adjustments are only supported via the mobile app or DSP tool for most Linkplay modules).
+        </p>
 
-          {/* Treble Control */}
-          <div className="bg-[#0a0a0a] rounded-xl p-8 border border-[#222] flex flex-col items-center">
-            <h3 className="text-zinc-400 font-medium tracking-widest uppercase mb-8">Treble</h3>
-            <div className="relative w-48 h-48 rounded-full border-4 border-[#222] flex items-center justify-center bg-[#151515] shadow-inner">
-              <input
-                type="range"
-                min="-10"
-                max="10"
-                value={treble}
-                onChange={(e) => handleTrebleChange(parseInt(e.target.value))}
-                className="absolute w-full h-full opacity-0 cursor-pointer z-10"
-              />
-              <div className="text-4xl font-mono text-emerald-400">
-                {treble > 0 ? `+${treble}` : treble}
-              </div>
-              <div className="absolute bottom-4 text-xs text-zinc-600">dB</div>
-            </div>
-            <div className="flex justify-between w-full mt-8 px-4 text-xs font-mono text-zinc-500">
-              <span>-10</span>
-              <span>0</span>
-              <span>+10</span>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+          {EQ_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => setEqMode(preset.id)}
+              className={`py-6 px-4 rounded-xl border transition-all ${
+                currentEq === preset.id
+                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                  : 'bg-[#0a0a0a] border-[#333] text-zinc-300 hover:border-[#555] hover:bg-[#151515]'
+              }`}
+            >
+              <div className="text-lg">{preset.name}</div>
+            </button>
+          ))}
         </div>
       </div>
     </div>

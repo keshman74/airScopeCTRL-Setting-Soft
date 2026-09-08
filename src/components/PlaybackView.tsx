@@ -7,6 +7,20 @@ interface PlaybackViewProps {
   sendCommand: (cmd: string) => void;
 }
 
+// Utility to decode Hex strings used by Linkplay for metadata
+function decodeHexStr(str: string): string {
+  if (!str || str.length % 2 !== 0) return str;
+  // If it's a known non-hex string like "Unknown", return it
+  if (!/^[0-9A-Fa-f]+$/.test(str)) return str;
+  
+  try {
+    const bytes = new Uint8Array(str.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+    return new TextDecoder().decode(bytes);
+  } catch (e) {
+    return str;
+  }
+}
+
 export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
   if (!status) {
     return (
@@ -19,6 +33,10 @@ export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
   const isPlaying = status.status === 'play';
   const volume = parseInt(status.vol, 10) || 0;
   const isMuted = status.mute === '1';
+
+  const decodedTitle = decodeHexStr(status.Title) || 'Unknown Title';
+  const decodedArtist = decodeHexStr(status.Artist) || 'Unknown Artist';
+  const decodedAlbum = decodeHexStr(status.Album);
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-8">
@@ -42,15 +60,15 @@ export function PlaybackView({ status, sendCommand }: PlaybackViewProps) {
                  status.mode === '31' ? 'Bluetooth' : 
                  status.mode === '40' ? 'Optical' : 'Playing'}
               </div>
-              <h2 className="text-4xl font-bold text-white truncate" title={status.Title || 'Unknown Title'}>
-                {status.Title || 'Unknown Title'}
+              <h2 className="text-4xl font-bold text-white truncate" title={decodedTitle}>
+                {decodedTitle}
               </h2>
-              <p className="text-xl text-zinc-400 truncate" title={status.Artist || 'Unknown Artist'}>
-                {status.Artist || 'Unknown Artist'}
+              <p className="text-xl text-zinc-400 truncate" title={decodedArtist}>
+                {decodedArtist}
               </p>
-              {status.Album && (
-                <p className="text-sm text-zinc-500 truncate" title={status.Album}>
-                  {status.Album}
+              {decodedAlbum && (
+                <p className="text-sm text-zinc-500 truncate" title={decodedAlbum}>
+                  {decodedAlbum}
                 </p>
               )}
             </div>
