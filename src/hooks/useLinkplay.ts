@@ -5,6 +5,7 @@ export function useLinkplay() {
   const [ip, setIp] = useState<string>('');
   const [protocol, setProtocol] = useState<'http' | 'https'>('http');
   const [isConnected, setIsConnected] = useState(false);
+  const [isTcpConnected, setIsTcpConnected] = useState(false);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
   const [metaInfo, setMetaInfo] = useState<MetaInfo | null>(null);
@@ -12,6 +13,45 @@ export function useLinkplay() {
   const [isPolling, setIsPolling] = useState(false);
 
   const pollIntervalRef = useRef<number | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // Initialize WebSocket connection for TCP
+  const initWebSocket = useCallback((targetIp: string) => {
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    
+    // Use secure websocket if the page itself is loaded over https (though it usually won't be in this preview context)
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}`;
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'connect_tcp', ip: targetIp, port: 8899 }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'tcp_status') {
+          setIsTcpConnected(msg.status === 'connected');
+        } else if (msg.type === 'tcp_data') {
+          // Handle incoming UART / TCP messages here in the future
+          console.log('[TCP Received]', msg.data);
+        } else if (msg.type === 'tcp_error') {
+          console.error('[TCP Error]', msg.error);
+        }
+      } catch (err) {
+        // Not JSON
+      }
+    };
+
+    ws.onclose = () => {
+      setIsTcpConnected(false);
+    };
+
+    wsRef.current = ws;
+  }, []);
 
   const sendCommand = useCallback(async (command: string): Promise<any> => {
     if (!ip) {
@@ -38,7 +78,15 @@ export function useLinkplay() {
       setIsConnected(false);
       return null;
     }
-  }, [ip]);
+  }, [ip, protocol]);
+
+  const sendTcpCommand = useCallback((command: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && isTcpConnected) {
+      wsRef.current.send(JSON.stringify({ type: 'send_tcp', command }));
+    } else {
+      console.warn("TCP socket not connected, cannot send command:", command);
+    }
+  }, [isTcpConnected]);
 
   const fetchStatus = useCallback(async () => {
     if (!ip) return;
@@ -74,15 +122,21 @@ export function useLinkplay() {
     setIp(newIp);
     setProtocol(newProtocol);
     setIsPolling(true);
-  }, []);
+    initWebSocket(newIp);
+  }, [initWebSocket]);
 
   const disconnect = useCallback(() => {
     setIp('');
     setIsConnected(false);
+    setIsTcpConnected(false);
     setIsPolling(false);
     setPlayerStatus(null);
     setDeviceStatus(null);
     setMetaInfo(null);
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -104,6 +158,7 @@ export function useLinkplay() {
   return {
     ip,
     isConnected,
+    isTcpConnected,
     playerStatus,
     deviceStatus,
     metaInfo,
@@ -111,6 +166,7 @@ export function useLinkplay() {
     connect,
     disconnect,
     sendCommand,
+    sendTcpCommand,
     fetchStatus
   };
 }

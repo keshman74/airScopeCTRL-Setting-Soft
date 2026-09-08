@@ -6,6 +6,7 @@ interface PlaybackViewProps {
   status: PlayerStatus | null;
   metaInfo?: MetaInfo | null;
   sendCommand: (cmd: string) => void;
+  sendTcpCommand?: (cmd: string) => void;
 }
 
 // Utility to decode Hex strings used by Linkplay for metadata
@@ -22,7 +23,7 @@ function decodeHexStr(str: string): string {
   }
 }
 
-export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProps) {
+export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: PlaybackViewProps) {
   const [localVolume, setLocalVolume] = useState<number | null>(null);
 
   useEffect(() => {
@@ -58,6 +59,13 @@ export function PlaybackView({ status, metaInfo, sendCommand }: PlaybackViewProp
 
   const handleVolumeRelease = () => {
     if (localVolume !== null) {
+      // Format volume to 3 digits, e.g. 050
+      const volStr = localVolume.toString().padStart(3, '0');
+      // Try to use TCP for instant volume setting without HTTP overhead
+      if (sendTcpCommand) {
+        sendTcpCommand(`MCU+VOL+${volStr}`);
+      }
+      // Also send via HTTP as fallback
       sendCommand(`setPlayerCmd:vol:${localVolume}`);
     }
   };

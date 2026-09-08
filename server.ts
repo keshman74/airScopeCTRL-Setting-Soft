@@ -1,5 +1,7 @@
 import express from "express";
 import path from "path";
+import { WebSocketServer, WebSocket } from "ws";
+import net from "net";
 
 async function startServer() {
   const app = express();
@@ -8,7 +10,7 @@ async function startServer() {
   // Disable strict TLS verification for internal network devices with self-signed certs
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-  // Middleware to proxy requests to the Linkplay device
+  // Existing HTTP API Proxy Middleware
   app.get("/api/proxy", async (req, res) => {
     const targetIp = req.query.ip as string;
     const command = req.query.command as string;
@@ -31,9 +33,10 @@ async function startServer() {
   });
 
   // Vite middleware for development
+  let vite: any;
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
+    vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
@@ -46,8 +49,72 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  });
+
+  // Initialize WebSocket server for TCP bridging
+  const wss = new WebSocketServer({ server });
+
+  wss.on('connection', (ws: WebSocket) => {
+    let deviceSocket: net.Socket | null = null;
+    let keepAliveInterval: NodeJS.Timeout | null = null;
+
+    ws.on('message', (message: string) => {
+      try {
+        const data = JSON.parse(message);
+        
+        if (data.type === 'connect_tcp') {
+          const { ip, port = 8899 } = data;
+          
+          if (deviceSocket) {
+            deviceSocket.destroy();
+          }
+
+          deviceSocket = new net.Socket();
+          
+          deviceSocket.connect(port, ip, () => {
+            console.log(`TCP Connected to ${ip}:${port}`);
+            ws.send(JSON.stringify({ type: 'tcp_status', status: 'connected' }));
+          });
+
+          deviceSocket.on('data', (buffer) => {
+            // Forward received TCP data (stringified or raw buffer encoded) to frontend
+            const text = buffer.toString('utf-8');
+            ws.send(JSON.stringify({ type: 'tcp_data', data: text }));
+          });
+
+          deviceSocket.on('close', () => {
+            console.log(`TCP Connection closed from ${ip}`);
+            ws.send(JSON.stringify({ type: 'tcp_status', status: 'disconnected' }));
+          });
+
+          deviceSocket.on('error', (err) => {
+            console.error(`TCP Error to ${ip}:`, err.message);
+            ws.send(JSON.stringify({ type: 'tcp_error', error: err.message }));
+          });
+          
+        } else if (data.type === 'send_tcp') {
+          if (deviceSocket && !deviceSocket.destroyed) {
+            // Write string command directly to device
+            deviceSocket.write(data.command);
+          } else {
+            ws.send(JSON.stringify({ type: 'tcp_error', error: 'TCP socket is not connected' }));
+          }
+        }
+      } catch (err) {
+        console.error('WS Error:', err);
+      }
+    });
+
+    ws.on('close', () => {
+      if (deviceSocket) {
+        deviceSocket.destroy();
+      }
+      if (keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+      }
+    });
   });
 }
 

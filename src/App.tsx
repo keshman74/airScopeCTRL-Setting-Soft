@@ -19,13 +19,15 @@ export default function App() {
   const { 
     ip, 
     isConnected, 
+    isTcpConnected,
     playerStatus, 
     deviceStatus,
     metaInfo,
     error, 
     connect, 
     disconnect, 
-    sendCommand 
+    sendCommand,
+    sendTcpCommand
   } = useLinkplay();
 
   return (
@@ -43,7 +45,7 @@ export default function App() {
         ) : (
           <div className="h-full">
             {currentView === 'playback' && (
-              <PlaybackView status={playerStatus} metaInfo={metaInfo} sendCommand={sendCommand} />
+              <PlaybackView status={playerStatus} metaInfo={metaInfo} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'eq' && (
               <EQSettings status={playerStatus} sendCommand={sendCommand} />
