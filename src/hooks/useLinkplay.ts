@@ -36,8 +36,58 @@ export function useLinkplay() {
         if (msg.type === 'tcp_status') {
           setIsTcpConnected(msg.status === 'connected');
         } else if (msg.type === 'tcp_data') {
-          // Handle incoming UART / TCP messages here in the future
-          console.log('[TCP Received]', msg.data);
+          const text = msg.data as string;
+          console.log('[TCP Received]', text);
+          
+          // Strip any binary headers and find AXX+
+          const axxIndex = text.indexOf('AXX+');
+          if (axxIndex !== -1) {
+            const payload = text.substring(axxIndex);
+            
+            // Handle Volume: AXX+VOL+050
+            if (payload.startsWith('AXX+VOL+')) {
+              const volVal = parseInt(payload.substring(8, 11), 10).toString();
+              setPlayerStatus(prev => prev ? { ...prev, vol: volVal } : null);
+            }
+            // Handle Mute: AXX+MUT+001
+            else if (payload.startsWith('AXX+MUT+')) {
+              const muteVal = payload.substring(8, 11);
+              setPlayerStatus(prev => prev ? { ...prev, mute: muteVal === '001' ? '1' : '0' } : null);
+            }
+            // Handle Play/Pause: AXX+PLY+001
+            else if (payload.startsWith('AXX+PLY+')) {
+              const playVal = payload.substring(8, 11);
+              setPlayerStatus(prev => prev ? { ...prev, status: playVal === '001' ? 'play' : 'pause' } : null);
+            }
+            // Handle Metadata: AXX+MEA+DAT{ "title": "...", "artist": "..." }&
+            else if (payload.startsWith('AXX+MEA+DAT')) {
+              try {
+                // Extract JSON part between '{' and '}'
+                const jsonStart = payload.indexOf('{');
+                const jsonEnd = payload.lastIndexOf('}');
+                if (jsonStart !== -1 && jsonEnd !== -1) {
+                  const jsonStr = payload.substring(jsonStart, jsonEnd + 1);
+                  const data = JSON.parse(jsonStr);
+                  
+                  setMetaInfo(prev => ({
+                    Title: data.title || prev?.Title || '',
+                    Artist: data.artist || prev?.Artist || '',
+                    Album: data.album || prev?.Album || '',
+                    albumArtURI: prev?.albumArtURI // Keep existing cover art until HTTP updates it
+                  }));
+                  
+                  setPlayerStatus(prev => prev ? {
+                    ...prev,
+                    Title: data.title || prev.Title,
+                    Artist: data.artist || prev.Artist,
+                    Album: data.album || prev.Album
+                  } : null);
+                }
+              } catch (e) {
+                console.error("Failed to parse AXX+MEA+DAT JSON", e);
+              }
+            }
+          }
         } else if (msg.type === 'tcp_error') {
           console.error('[TCP Error]', msg.error);
         }
