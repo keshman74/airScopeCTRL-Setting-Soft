@@ -23,6 +23,8 @@ export default function App() {
     playerStatus, 
     deviceStatus,
     metaInfo,
+    uartStatus,
+    sysInfo,
     error, 
     connect, 
     disconnect, 
@@ -48,13 +50,13 @@ export default function App() {
               <PlaybackView status={playerStatus} metaInfo={metaInfo} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'eq' && (
-              <EQSettings status={playerStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
+              <EQSettings status={playerStatus} uartStatus={uartStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'advanced' && (
-              <AdvancedSettings deviceStatus={deviceStatus} playerStatus={playerStatus} sendCommand={sendCommand} />
+              <AdvancedSettings deviceStatus={deviceStatus} uartStatus={uartStatus} playerStatus={playerStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'system' && (
-              <SystemInfo deviceStatus={deviceStatus} />
+              <SystemInfo deviceStatus={deviceStatus} sysInfo={sysInfo} />
             )}
             {currentView === 'terminal' && (
               <TerminalView sendCommand={sendCommand} />

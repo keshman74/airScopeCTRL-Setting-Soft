@@ -16,6 +16,8 @@ export interface PlayerStatus {
   plicurr: string;
   vol: string;
   mute: string;
+  bass?: string;
+  treble?: string;
 }
 
 export interface MetaInfo {
@@ -23,6 +25,34 @@ export interface MetaInfo {
   Artist: string;
   Album: string;
   albumArtURI?: string;
+}
+
+export interface UartStatus {
+  bass: number;
+  treble: number;
+  mid: number;
+  balance: number;
+  vbs: boolean;
+  eqe: boolean;
+  cfe: boolean;
+  cff: number;
+  peqList: string;
+  eqs: number;
+  vst: number;
+  vof: number;
+  vog: number;
+  deviceNet: string;
+  rssiWifi: string;
+  rssiBt: string;
+  ip: string;
+  time: string;
+  pinOn: boolean;
+  pin: string;
+  deviceName: string;
+}
+
+export interface SysInfo {
+  [key: string]: string;
 }
 
 export interface DeviceStatus {

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { PlayerStatus, DeviceStatus, MetaInfo } from '../types';
+import { PlayerStatus, DeviceStatus, MetaInfo, UartStatus, SysInfo } from '../types';
 
 export function useLinkplay() {
   const [ip, setIp] = useState<string>('');
@@ -9,6 +9,16 @@ export function useLinkplay() {
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
   const [metaInfo, setMetaInfo] = useState<MetaInfo | null>(null);
+  
+  // New State variables for UART and System
+  const [uartStatus, setUartStatus] = useState<UartStatus>({
+    bass: 0, treble: 0, mid: 0, balance: 0, vbs: false,
+    eqe: false, cfe: false, cff: 0, peqList: '', eqs: 0,
+    vst: 0, vof: 0, vog: 0, deviceNet: '', rssiWifi: '',
+    rssiBt: '', ip: '', time: '', pinOn: false, pin: '', deviceName: ''
+  });
+  const [sysInfo, setSysInfo] = useState<SysInfo | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [isPolling, setIsPolling] = useState(false);
 
@@ -35,6 +45,19 @@ export function useLinkplay() {
         const msg = JSON.parse(event.data);
         if (msg.type === 'tcp_status') {
           setIsTcpConnected(msg.status === 'connected');
+          if (msg.status === 'connected') {
+            // Request full system info when TCP connects
+            ws.send(JSON.stringify({ type: 'send_tcp', command: 'MCU+INF+GET' }));
+            ws.send(JSON.stringify({ type: 'send_tcp', command: 'MCU+PLP+GET' }));
+            // Query a bunch of UART states to hydrate UI
+            ['BAS', 'TRE', 'MID', 'BAL', 'VBS', 'PEQ', 'EQS'].forEach((cmd, idx) => {
+              setTimeout(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({ type: 'send_tcp', command: `MCU+PAS+RAKOIT:${cmd}&` }));
+                }
+              }, idx * 200); // Stagger requests slightly as per Arylic best practices
+            });
+          }
         } else if (msg.type === 'tcp_data') {
           const text = msg.data as string;
           console.log('[TCP Received]', text);
@@ -59,10 +82,14 @@ export function useLinkplay() {
               const playVal = payload.substring(8, 11);
               setPlayerStatus(prev => prev ? { ...prev, status: playVal === '001' ? 'play' : 'pause' } : null);
             }
+            // Handle Playback Mode: AXX+PLP+001
+            else if (payload.startsWith('AXX+PLP+')) {
+              const loopVal = parseInt(payload.substring(8, 11), 10).toString();
+              setPlayerStatus(prev => prev ? { ...prev, loop: loopVal } : null);
+            }
             // Handle Metadata: AXX+MEA+DAT{ "title": "...", "artist": "..." }&
             else if (payload.startsWith('AXX+MEA+DAT')) {
               try {
-                // Extract JSON part between '{' and '}'
                 const jsonStart = payload.indexOf('{');
                 const jsonEnd = payload.lastIndexOf('}');
                 if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -73,7 +100,7 @@ export function useLinkplay() {
                     Title: data.title || prev?.Title || '',
                     Artist: data.artist || prev?.Artist || '',
                     Album: data.album || prev?.Album || '',
-                    albumArtURI: prev?.albumArtURI // Keep existing cover art until HTTP updates it
+                    albumArtURI: prev?.albumArtURI
                   }));
                   
                   setPlayerStatus(prev => prev ? {
@@ -85,6 +112,75 @@ export function useLinkplay() {
                 }
               } catch (e) {
                 console.error("Failed to parse AXX+MEA+DAT JSON", e);
+              }
+            }
+            // Handle Progress: AXX+SNG+INF{"curpos":"3996","totlen":"229000","status":"play","loop":"0"}&
+            else if (payload.startsWith('AXX+SNG+INF')) {
+              try {
+                const jsonStart = payload.indexOf('{');
+                const jsonEnd = payload.lastIndexOf('}');
+                if (jsonStart !== -1 && jsonEnd !== -1) {
+                  const data = JSON.parse(payload.substring(jsonStart, jsonEnd + 1));
+                  setPlayerStatus(prev => prev ? { 
+                    ...prev, 
+                    curpos: data.curpos || prev.curpos, 
+                    totlen: data.totlen || prev.totlen, 
+                    status: data.status || prev.status,
+                    loop: data.loop || prev.loop 
+                  } : null);
+                }
+              } catch(e) {}
+            }
+            // Handle System Info: AXX+INF+INF{"uuid":"..."}
+            else if (payload.startsWith('AXX+INF+INF')) {
+              try {
+                const jsonStart = payload.indexOf('{');
+                const jsonEnd = payload.lastIndexOf('}');
+                if (jsonStart !== -1 && jsonEnd !== -1) {
+                  const data = JSON.parse(payload.substring(jsonStart, jsonEnd + 1));
+                  setSysInfo(data);
+                }
+              } catch(e) {}
+            }
+            // Handle UART Passthrough Responses: AXX+PAS+RAKOIT:BAS:2&
+            else if (payload.startsWith('AXX+PAS+RAKOIT:')) {
+              const uartData = payload.substring(15).split('&')[0];
+              const parts = uartData.split(':');
+              if (parts.length >= 2) {
+                const cmd = parts[0];
+                const val = parts.slice(1).join(':'); // Rejoin in case of things like time "12:00:00"
+                
+                setUartStatus(prev => {
+                  const newState = { ...prev };
+                  if (cmd === 'BAS') newState.bass = parseInt(val, 10);
+                  else if (cmd === 'TRE') newState.treble = parseInt(val, 10);
+                  else if (cmd === 'MID') newState.mid = parseInt(val, 10);
+                  else if (cmd === 'BAL') newState.balance = parseInt(val, 10);
+                  else if (cmd === 'VBS') newState.vbs = val === '1';
+                  else if (cmd === 'EQE') newState.eqe = val === '1';
+                  else if (cmd === 'CFE') newState.cfe = val === '1';
+                  else if (cmd === 'CFF') newState.cff = parseInt(val, 10);
+                  else if (cmd === 'PEQ') newState.peqList = val;
+                  else if (cmd === 'EQS') newState.eqs = parseInt(val, 10);
+                  else if (cmd === 'VST') newState.vst = parseInt(val, 10);
+                  else if (cmd === 'VOF') newState.vof = parseInt(val, 10);
+                  else if (cmd === 'VOG') newState.vog = parseInt(val, 10);
+                  else if (cmd === 'STA') newState.deviceNet = val;
+                  else if (cmd === 'WSS') newState.rssiWifi = val;
+                  else if (cmd === 'BSS') newState.rssiBt = val;
+                  else if (cmd === 'IPA') newState.ip = val;
+                  else if (cmd === 'TME') newState.time = val;
+                  else if (cmd === 'COE') newState.pinOn = val === '1';
+                  else if (cmd === 'COD') newState.pin = val;
+                  else if (cmd === 'NAM') {
+                    // NAM hex decode
+                    try {
+                      const bytes = new Uint8Array(val.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+                      newState.deviceName = new TextDecoder().decode(bytes);
+                    } catch(e) {}
+                  }
+                  return newState;
+                });
               }
             }
           }
@@ -212,6 +308,8 @@ export function useLinkplay() {
     playerStatus,
     deviceStatus,
     metaInfo,
+    uartStatus,
+    sysInfo,
     error,
     connect,
     disconnect,

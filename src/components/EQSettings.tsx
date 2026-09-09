@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { PlayerStatus } from '../types';
+import { PlayerStatus, UartStatus } from '../types';
 import { Sliders, Waves } from 'lucide-react';
 
 interface EQSettingsProps {
   status: PlayerStatus | null;
+  uartStatus?: UartStatus;
   sendCommand: (cmd: string) => void;
   sendTcpCommand?: (cmd: string) => void;
 }
 
-export function EQSettings({ status, sendCommand, sendTcpCommand }: EQSettingsProps) {
+export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: EQSettingsProps) {
   const [bass, setBass] = useState(0);
   const [treble, setTreble] = useState(0);
   const [mid, setMid] = useState(0);
   const [balance, setBalance] = useState(0);
   const [vbs, setVbs] = useState(false);
   
-  // Note: We don't get these detailed values back from HTTP getPlayerStatus,
-  // so this relies purely on what the user sets in the app, or future TCP parsing.
-  // In a full implementation, the TCP parser in useLinkplay would listen to AXX+BAS+...
+  // Sync state with device via UART responses
+  useEffect(() => {
+    if (uartStatus) {
+      setBass(uartStatus.bass);
+      setTreble(uartStatus.treble);
+      setMid(uartStatus.mid);
+      setBalance(uartStatus.balance);
+      setVbs(uartStatus.vbs);
+    }
+  }, [uartStatus]);
   
   const handleSliderRelease = (type: 'bass' | 'treble' | 'mid' | 'balance', value: number) => {
     if (sendTcpCommand) {

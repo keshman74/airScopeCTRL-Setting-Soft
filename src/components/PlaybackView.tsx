@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlayerStatus, MetaInfo } from '../types';
-import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Disc3 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, VolumeX, Volume2, Disc3, Repeat, Repeat1, Shuffle, ListVideo } from 'lucide-react';
 
 interface PlaybackViewProps {
   status: PlayerStatus | null;
@@ -76,6 +76,14 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
 
   const currentMode = status.mode || '';
 
+  const formatTime = (ms: number) => {
+    if (!ms || isNaN(ms)) return '0:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-12 px-8">
       <div className="bg-[#111] border border-[#222] rounded-2xl p-8 shadow-2xl">
@@ -105,7 +113,7 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
           </div>
 
           {/* Track Info & Controls */}
-          <div className="flex-1 w-full space-y-8">
+          <div className="flex-1 w-full space-y-6">
             <div className="space-y-2 min-w-0">
               <div className="text-xs font-semibold text-emerald-400 tracking-widest uppercase truncate">
                 {status.mode === '010' || status.mode === '10' ? 'Wi-Fi Streaming' : 
@@ -130,28 +138,78 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
               )}
             </div>
 
-            {/* Transport Controls */}
-            <div className="flex items-center gap-6">
-              <button 
-                onClick={() => sendCommand('setPlayerCmd:prev')}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-400 hover:text-white transition-all border border-[#333]"
-              >
-                <SkipBack size={20} />
-              </button>
-              
-              <button 
-                onClick={() => sendCommand(isPlaying ? 'setPlayerCmd:pause' : 'setPlayerCmd:play')}
-                className="w-16 h-16 rounded-full flex items-center justify-center bg-zinc-100 hover:bg-white text-black transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
-              >
-                {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
-              </button>
+            {/* Progress Bar */}
+            {status.totlen && parseInt(status.totlen, 10) > 0 && (
+              <div className="space-y-2 pt-2">
+                <div className="h-1.5 w-full bg-[#222] rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-emerald-500 transition-all duration-1000 ease-linear"
+                    style={{ width: `${Math.min(100, Math.max(0, (parseInt(status.curpos || '0', 10) / parseInt(status.totlen, 10)) * 100))}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
+                  <span>{formatTime(parseInt(status.curpos || '0', 10))}</span>
+                  <span>{formatTime(parseInt(status.totlen, 10))}</span>
+                </div>
+              </div>
+            )}
 
-              <button 
-                onClick={() => sendCommand('setPlayerCmd:next')}
-                className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-400 hover:text-white transition-all border border-[#333]"
-              >
-                <SkipForward size={20} />
-              </button>
+            {/* Transport Controls */}
+            <div className="flex items-center gap-6 justify-between w-full">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => {
+                    const loopModes = ['000', '001', '003', '004']; // repeat all, repeat one, shuffle, sequence
+                    let currentIndex = 0;
+                    if (status.loop === '1') currentIndex = 1;
+                    if (status.loop === '2' || status.loop === '3') currentIndex = 2;
+                    if (status.loop === '4') currentIndex = 3;
+                    
+                    const nextMode = loopModes[(currentIndex + 1) % loopModes.length];
+                    if (sendTcpCommand) {
+                      sendTcpCommand(`MCU+PLP+${nextMode}`);
+                    } else {
+                      sendCommand(`setPlayerCmd:loopmode:${parseInt(nextMode, 10)}`);
+                    }
+                  }}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                    status.loop === '0' || !status.loop ? 'text-zinc-500 hover:text-white' : 'text-emerald-400 bg-emerald-400/10'
+                  }`}
+                  title="Toggle Repeat/Shuffle"
+                >
+                  {status.loop === '1' ? <Repeat1 size={18} /> : 
+                   status.loop === '2' || status.loop === '3' ? <Shuffle size={18} /> : 
+                   status.loop === '4' ? <ListVideo size={18} /> : 
+                   <Repeat size={18} />}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-6">
+                <button 
+                  onClick={() => sendCommand('setPlayerCmd:prev')}
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-400 hover:text-white transition-all border border-[#333]"
+                >
+                  <SkipBack size={20} />
+                </button>
+                
+                <button 
+                  onClick={() => sendCommand(isPlaying ? 'setPlayerCmd:pause' : 'setPlayerCmd:play')}
+                  className="w-16 h-16 rounded-full flex items-center justify-center bg-zinc-100 hover:bg-white text-black transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                >
+                  {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
+                </button>
+
+                <button 
+                  onClick={() => sendCommand('setPlayerCmd:next')}
+                  className="w-12 h-12 rounded-full flex items-center justify-center bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-400 hover:text-white transition-all border border-[#333]"
+                >
+                  <SkipForward size={20} />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 w-10">
+                {/* Spacer to balance the loop button on the left */}
+              </div>
             </div>
 
             {/* Volume Control */}
