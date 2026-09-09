@@ -50,7 +50,7 @@ export function useLinkplay() {
             ws.send(JSON.stringify({ type: 'send_tcp', command: 'MCU+INF+GET' }));
             ws.send(JSON.stringify({ type: 'send_tcp', command: 'MCU+PLP+GET' }));
             // Query a bunch of UART states to hydrate UI
-            ['BAS', 'TRE', 'MID', 'BAL', 'VBS', 'PEQ', 'EQS'].forEach((cmd, idx) => {
+            ['BAS', 'TRE', 'MID', 'BAL', 'VBS', 'PEQ', 'EQS', 'MXV', 'VOF'].forEach((cmd, idx) => {
               setTimeout(() => {
                 if (ws.readyState === WebSocket.OPEN) {
                   ws.send(JSON.stringify({ type: 'send_tcp', command: `MCU+PAS+RAKOIT:${cmd}&` }));
@@ -165,6 +165,7 @@ export function useLinkplay() {
                   else if (cmd === 'VST') newState.vst = parseInt(val, 10);
                   else if (cmd === 'VOF') newState.vof = parseInt(val, 10);
                   else if (cmd === 'VOG') newState.vog = parseInt(val, 10);
+                  else if (cmd === 'MXV') newState.mxv = parseInt(val, 10);
                   else if (cmd === 'STA') newState.deviceNet = val;
                   else if (cmd === 'WSS') newState.rssiWifi = val;
                   else if (cmd === 'BSS') newState.rssiBt = val;

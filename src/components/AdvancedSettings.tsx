@@ -14,6 +14,14 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
   const [deviceName, setDeviceName] = useState('');
   const [pinCode, setPinCode] = useState('');
   
+  const [maxVolume, setMaxVolume] = useState<number | null>(null);
+  const [fixedVolume, setFixedVolume] = useState<number | null>(null);
+  
+  const [staticIp, setStaticIp] = useState('');
+  const [staticMask, setStaticMask] = useState('255.255.255.0');
+  const [staticGw, setStaticGw] = useState('');
+  const [staticDns, setStaticDns] = useState('8.8.8.8');
+
   useEffect(() => {
     if (uartStatus?.deviceName) {
       setDeviceName(uartStatus.deviceName);
@@ -21,10 +29,35 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
       setDeviceName(deviceStatus.DeviceName);
     }
     
-    if (uartStatus?.pin) {
-      setPinCode(uartStatus.pin);
+    if (uartStatus?.pin) setPinCode(uartStatus.pin);
+    if (uartStatus?.mxv !== undefined && maxVolume === null) setMaxVolume(uartStatus.mxv);
+    if (uartStatus?.vof !== undefined && fixedVolume === null) setFixedVolume(uartStatus.vof);
+
+    if (uartStatus?.ip && !staticIp) {
+      setStaticIp(uartStatus.ip);
+      const parts = uartStatus.ip.split('.');
+      if (parts.length === 4) {
+        setStaticGw(`${parts[0]}.${parts[1]}.${parts[2]}.1`);
+      }
     }
   }, [deviceStatus, uartStatus]);
+
+  const handleSaveVolumeSettings = () => {
+    if (sendTcpCommand) {
+      if (maxVolume !== null) sendTcpCommand(`MCU+PAS+RAKOIT:MXV:${maxVolume}&`);
+      if (fixedVolume !== null) sendTcpCommand(`MCU+PAS+RAKOIT:VOF:${fixedVolume}&`);
+      alert("Volume limits saved.");
+    }
+  };
+
+  const handleSaveStaticIp = () => {
+    if (staticIp && staticMask && staticGw) {
+      // type can be wifi or eth. Let's default to wifi as it's most common for this setup
+      const cmd = `setStaticIP:{"type":"wifi","ip":"${staticIp}","mask":"${staticMask}","gateway":"${staticGw}","dns":[{"service":"${staticDns}"}]}`;
+      sendCommand(cmd);
+      alert("Static IP command sent. Device will disconnect if IP changes.");
+    }
+  };
 
   const handleSaveDeviceName = () => {
     if (deviceName.trim() && sendTcpCommand) {
@@ -197,6 +230,75 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Volume Limits */}
+        <div className="bg-[#111] border border-[#222] rounded-2xl p-8 space-y-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Volume Output</h3>
+          
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest flex justify-between">
+              <span>Maximum Volume Limit</span>
+              <span className="text-emerald-400">{maxVolume !== null ? maxVolume : '--'}%</span>
+            </h4>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={maxVolume !== null ? maxVolume : 100}
+              onChange={(e) => setMaxVolume(parseInt(e.target.value, 10))}
+              className="w-full h-2 bg-[#333] rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            />
+            <p className="text-xs text-zinc-600">Caps the maximum adjustable volume to protect speakers.</p>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-[#222]">
+            <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest flex justify-between">
+              <span>Fixed Output Volume (VOF)</span>
+              <span className="text-emerald-400">{fixedVolume !== null && fixedVolume > 0 ? fixedVolume : 'Variable'}%</span>
+            </h4>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={fixedVolume !== null ? fixedVolume : 0}
+              onChange={(e) => setFixedVolume(parseInt(e.target.value, 10))}
+              className="w-full h-2 bg-[#333] rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            />
+            <p className="text-xs text-zinc-600">If set above 0, the device outputs at this fixed volume and volume controls are disabled (ideal for external preamps).</p>
+          </div>
+          
+          <button onClick={handleSaveVolumeSettings} className="w-full bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-300 border border-[#333] px-4 py-2 rounded-md transition-colors text-sm flex items-center justify-center gap-2">
+            <Save size={16} /> Save Volume Limits
+          </button>
+        </div>
+
+        {/* Network Configuration */}
+        <div className="bg-[#111] border border-[#222] rounded-2xl p-8 space-y-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Network (Static IP)</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-1 block">IP Address</label>
+              <input type="text" value={staticIp} onChange={e => setStaticIp(e.target.value)} placeholder="192.168.1.100" className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-1 block">Subnet Mask</label>
+              <input type="text" value={staticMask} onChange={e => setStaticMask(e.target.value)} placeholder="255.255.255.0" className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-1 block">Gateway</label>
+              <input type="text" value={staticGw} onChange={e => setStaticGw(e.target.value)} placeholder="192.168.1.1" className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-1 block">DNS Server</label>
+              <input type="text" value={staticDns} onChange={e => setStaticDns(e.target.value)} placeholder="8.8.8.8" className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono" />
+            </div>
+          </div>
+          
+          <button onClick={handleSaveStaticIp} className="w-full bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-300 border border-[#333] px-4 py-2 rounded-md transition-colors text-sm flex items-center justify-center gap-2">
+            <Save size={16} /> Apply Static IP
+          </button>
         </div>
 
         {/* System Control */}

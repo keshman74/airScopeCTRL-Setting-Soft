@@ -78,10 +78,43 @@ async function startServer() {
             ws.send(JSON.stringify({ type: 'tcp_status', status: 'connected' }));
           });
 
-          deviceSocket.on('data', (buffer) => {
-            // Forward received TCP data (stringified or raw buffer encoded) to frontend
-            const text = buffer.toString('utf-8');
-            ws.send(JSON.stringify({ type: 'tcp_data', data: text }));
+          let receiveBuffer = Buffer.alloc(0);
+
+          deviceSocket.on('data', (chunk) => {
+            receiveBuffer = Buffer.concat([receiveBuffer, chunk]);
+
+            // Keep parsing as long as we have at least a 20-byte header
+            while (receiveBuffer.length >= 20) {
+              // Check for Linkplay magic header: 0x18 0x96 0x18 0x20
+              if (
+                receiveBuffer[0] !== 0x18 ||
+                receiveBuffer[1] !== 0x96 ||
+                receiveBuffer[2] !== 0x18 ||
+                receiveBuffer[3] !== 0x20
+              ) {
+                // Not a valid header, shift 1 byte and search again
+                receiveBuffer = receiveBuffer.slice(1);
+                continue;
+              }
+
+              // Read little-endian 32-bit integer for payload length (bytes 4-7)
+              const payloadLength = receiveBuffer.readUInt32LE(4);
+              
+              if (receiveBuffer.length < 20 + payloadLength) {
+                // We don't have the full payload yet, wait for more chunks
+                break;
+              }
+
+              // Extract the payload
+              const payload = receiveBuffer.slice(20, 20 + payloadLength);
+              const text = payload.toString('utf-8');
+              
+              // Forward decoded text payload to frontend
+              ws.send(JSON.stringify({ type: 'tcp_data', data: text }));
+
+              // Remove this packet from the buffer
+              receiveBuffer = receiveBuffer.slice(20 + payloadLength);
+            }
           });
 
           deviceSocket.on('close', () => {

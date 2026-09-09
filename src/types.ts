@@ -41,6 +41,7 @@ export interface UartStatus {
   vst: number;
   vof: number;
   vog: number;
+  mxv: number;
   deviceNet: string;
   rssiWifi: string;
   rssiBt: string;

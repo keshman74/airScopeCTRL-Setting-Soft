@@ -292,6 +292,39 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
               </div>
             </div>
 
+            {/* Internet Radio (Direct URL) */}
+            <div className="pt-6 border-t border-[#222]">
+              <h3 className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Internet Radio</h3>
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2">
+                  <button onClick={() => sendCommand('setPlayerCmd:play:http://icecast.vrtcdn.be/stubru-high.mp3')} className="flex-1 bg-[#0a0a0a] border border-[#333] hover:border-[#555] hover:bg-[#151515] text-zinc-300 px-3 py-2 rounded-lg text-xs font-medium transition-colors">
+                    Studio Brussel
+                  </button>
+                  <button onClick={() => sendCommand('setPlayerCmd:play:http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio1_mf_p')} className="flex-1 bg-[#0a0a0a] border border-[#333] hover:border-[#555] hover:bg-[#151515] text-zinc-300 px-3 py-2 rounded-lg text-xs font-medium transition-colors">
+                    BBC Radio 1
+                  </button>
+                  <button onClick={() => sendCommand('setPlayerCmd:play:http://stream.radioparadise.com/flac')} className="flex-1 bg-[#0a0a0a] border border-[#333] hover:border-[#555] hover:bg-[#151515] text-zinc-300 px-3 py-2 rounded-lg text-xs font-medium transition-colors">
+                    Radio Paradise
+                  </button>
+                </div>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const input = form.elements.namedItem('streamUrl') as HTMLInputElement;
+                    if (input.value) {
+                      sendCommand(`setPlayerCmd:play:${input.value}`);
+                      input.value = '';
+                    }
+                  }} 
+                  className="flex gap-2"
+                >
+                  <input name="streamUrl" type="url" placeholder="Paste stream URL (e.g. .m3u, .mp3)" className="flex-1 bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+                  <button type="submit" className="bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-300 border border-[#333] px-3 py-2 rounded-md transition-colors text-xs">Play Stream</button>
+                </form>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
