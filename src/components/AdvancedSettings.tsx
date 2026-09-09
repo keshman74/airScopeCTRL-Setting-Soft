@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { DeviceStatus, PlayerStatus, UartStatus } from '../types';
+import { DeviceStatus, PlayerStatus, UartStatus, SysInfo } from '../types';
 import { Save, AlertTriangle, RotateCcw, Settings, Wifi, Bluetooth, Network } from 'lucide-react';
 
 interface AdvancedSettingsProps {
   deviceStatus: DeviceStatus | null;
   playerStatus: PlayerStatus | null;
   uartStatus?: UartStatus;
+  sysInfo?: SysInfo | null;
   sendCommand: (cmd: string) => Promise<any>;
   sendTcpCommand?: (cmd: string) => void;
 }
 
-export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendCommand, sendTcpCommand }: AdvancedSettingsProps) {
+export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysInfo, sendCommand, sendTcpCommand }: AdvancedSettingsProps) {
   const [deviceName, setDeviceName] = useState('');
   const [pinCode, setPinCode] = useState('');
   
@@ -34,6 +35,8 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
   useEffect(() => {
     if (uartStatus?.deviceName) {
       setDeviceName(uartStatus.deviceName);
+    } else if (sysInfo?.DeviceName) {
+      setDeviceName(sysInfo.DeviceName);
     } else if (deviceStatus?.DeviceName) {
       setDeviceName(deviceStatus.DeviceName);
     }
@@ -185,26 +188,12 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Wifi size={18} className="text-zinc-400" />
-                <span className="text-sm font-medium text-zinc-300">Wi-Fi Signal</span>
-              </div>
-              <span className="text-sm font-mono text-zinc-400">{uartStatus?.rssiWifi || deviceStatus?.rssi ? `${uartStatus?.rssiWifi || deviceStatus?.rssi} dBm` : 'Unknown'}</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Bluetooth size={18} className="text-zinc-400" />
-                <span className="text-sm font-medium text-zinc-300">Bluetooth Signal</span>
-              </div>
-              <span className="text-sm font-mono text-zinc-400">{uartStatus?.rssiBt ? `${uartStatus.rssiBt} dBm` : 'Unknown'}</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
                 <Network size={18} className="text-zinc-400" />
                 <span className="text-sm font-medium text-zinc-300">IP Address</span>
               </div>
-              <span className="text-sm font-mono text-zinc-400">{uartStatus?.ip || (deviceStatus?.apcli0 && deviceStatus.apcli0 !== '0.0.0.0' ? deviceStatus.apcli0 : (deviceStatus?.eth2 && deviceStatus.eth2 !== '0.0.0.0' ? deviceStatus.eth2 : 'Unknown'))}</span>
+              <span className="text-sm font-mono text-zinc-400">
+                {sysInfo?.apcli0 || sysInfo?.eth2 || uartStatus?.ip || (deviceStatus?.apcli0 && deviceStatus.apcli0 !== '0.0.0.0' ? deviceStatus.apcli0 : (deviceStatus?.eth2 && deviceStatus.eth2 !== '0.0.0.0' ? deviceStatus.eth2 : 'Unknown'))}
+              </span>
             </div>
           </div>
           

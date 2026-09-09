@@ -53,7 +53,7 @@ export default function App() {
               <EQSettings status={playerStatus} uartStatus={uartStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'advanced' && (
-              <AdvancedSettings deviceStatus={deviceStatus} uartStatus={uartStatus} playerStatus={playerStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
+              <AdvancedSettings deviceStatus={deviceStatus} sysInfo={sysInfo} uartStatus={uartStatus} playerStatus={playerStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'system' && (
               <SystemInfo deviceStatus={deviceStatus} sysInfo={sysInfo} />
