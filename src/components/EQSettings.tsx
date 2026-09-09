@@ -15,15 +15,21 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
   const [mid, setMid] = useState(0);
   const [balance, setBalance] = useState(0);
   const [vbs, setVbs] = useState(false);
+  const [eqe, setEqe] = useState(false);
+  const [cfe, setCfe] = useState(false);
+  const [cff, setCff] = useState(50);
   
   // Sync state with device via UART responses
   useEffect(() => {
     if (uartStatus) {
-      setBass(uartStatus.bass);
-      setTreble(uartStatus.treble);
-      setMid(uartStatus.mid);
-      setBalance(uartStatus.balance);
-      setVbs(uartStatus.vbs);
+      if (uartStatus.bass !== undefined) setBass(uartStatus.bass);
+      if (uartStatus.treble !== undefined) setTreble(uartStatus.treble);
+      if (uartStatus.mid !== undefined) setMid(uartStatus.mid);
+      if (uartStatus.balance !== undefined) setBalance(uartStatus.balance);
+      if (uartStatus.vbs !== undefined) setVbs(uartStatus.vbs);
+      if (uartStatus.eqe !== undefined) setEqe(uartStatus.eqe);
+      if (uartStatus.cfe !== undefined) setCfe(uartStatus.cfe);
+      if (uartStatus.cff !== undefined) setCff(uartStatus.cff);
     }
   }, [uartStatus]);
   
@@ -49,6 +55,22 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
     }
   };
 
+  const handleToggleEqe = () => {
+    const newVal = !eqe;
+    setEqe(newVal);
+    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:EQE:${newVal ? '1' : '0'}&`);
+  };
+
+  const handleToggleCfe = () => {
+    const newVal = !cfe;
+    setCfe(newVal);
+    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:CFE:${newVal ? '1' : '0'}&`);
+  };
+
+  const handleCffRelease = (value: number) => {
+    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:CFF:${value}&`);
+  };
+
   return (
     <div className="max-w-4xl mx-auto py-12 px-8 space-y-8">
       <div className="flex items-center gap-4 mb-8">
@@ -65,6 +87,37 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
         <div className="bg-[#111] border border-[#222] rounded-2xl p-8 space-y-8">
           <h3 className="text-lg font-semibold text-white mb-6">Tone Control</h3>
           
+          {/* Preset EQs */}
+          <div className="mb-8">
+            <h4 className="text-sm font-medium text-zinc-400 mb-3">Presets</h4>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: 0, label: 'Flat' },
+                { id: 1, label: 'Classical' },
+                { id: 2, label: 'Pop' },
+                { id: 3, label: 'Jazz' },
+                { id: 4, label: 'Rock' },
+                { id: 5, label: 'Vocal' },
+              ].map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => {
+                    if (sendTcpCommand) {
+                      sendTcpCommand(`MCU+PAS+RAKOIT:EQS:${preset.id}&`);
+                    }
+                  }}
+                  className={`py-2 px-1 text-xs font-medium rounded border transition-colors ${
+                    uartStatus?.eqs === preset.id
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
+                      : 'bg-[#1a1a1a] text-zinc-400 border-[#333] hover:bg-[#2a2a2a] hover:border-[#444]'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-6">
             <div>
               <div className="flex justify-between mb-2">
@@ -183,6 +236,50 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
                 />
                 <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#1a1a1a] border border-[#333] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="text-sm font-medium text-white">Master EQ Enable (EQE)</div>
+                  <div className="text-xs text-zinc-500">Toggle all EQ processing</div>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" checked={eqe} onChange={handleToggleEqe} />
+                <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#1a1a1a] border border-[#333] flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-white">Crossover Filter (CFE)</div>
+                  <div className="text-xs text-zinc-500">High-pass stereo, Low-pass DAC-X</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={cfe} onChange={handleToggleCfe} />
+                  <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+              
+              <div className={`transition-opacity ${cfe ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                <div className="flex justify-between mb-2">
+                  <label className="text-xs font-medium text-zinc-400">Crossover Frequency</label>
+                  <span className="text-xs font-mono text-zinc-500">{cff} Hz</span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="300"
+                  step="10"
+                  value={cff}
+                  onChange={(e) => setCff(parseInt(e.target.value))}
+                  onMouseUp={(e) => handleCffRelease(parseInt((e.target as HTMLInputElement).value))}
+                  onTouchEnd={(e) => handleCffRelease(parseInt((e.target as HTMLInputElement).value))}
+                  className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                />
+              </div>
             </div>
 
             <div className="text-xs text-zinc-500 leading-relaxed border-t border-[#222] pt-6">

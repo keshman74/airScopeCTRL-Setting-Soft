@@ -50,6 +50,14 @@ export interface UartStatus {
   pinOn: boolean;
   pin: string;
   deviceName: string;
+  led?: boolean;
+  pmt?: boolean;
+  asw?: boolean;
+  vos?: boolean;
+  sop?: boolean;
+  dly?: number;
+  lst?: string[];
+  pom?: string;
 }
 
 export interface SysInfo {

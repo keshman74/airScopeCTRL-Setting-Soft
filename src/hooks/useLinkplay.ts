@@ -50,7 +50,7 @@ export function useLinkplay() {
             ws.send(JSON.stringify({ type: 'send_tcp', command: 'MCU+INF+GET' }));
             ws.send(JSON.stringify({ type: 'send_tcp', command: 'MCU+PLP+GET' }));
             // Query a bunch of UART states to hydrate UI
-            ['BAS', 'TRE', 'MID', 'BAL', 'VBS', 'PEQ', 'EQS', 'MXV', 'VOF'].forEach((cmd, idx) => {
+            ['BAS', 'TRE', 'MID', 'BAL', 'VBS', 'PEQ', 'EQS', 'MXV', 'VOF', 'WSS', 'BSS', 'IPA', 'VST', 'EQE', 'CFE', 'CFF', 'LED', 'PMT', 'ASW', 'VOS', 'SOP', 'DLY', 'LST', 'POM'].forEach((cmd, idx) => {
               setTimeout(() => {
                 if (ws.readyState === WebSocket.OPEN) {
                   ws.send(JSON.stringify({ type: 'send_tcp', command: `MCU+PAS+RAKOIT:${cmd}&` }));
@@ -173,6 +173,14 @@ export function useLinkplay() {
                   else if (cmd === 'TME') newState.time = val;
                   else if (cmd === 'COE') newState.pinOn = val === '1';
                   else if (cmd === 'COD') newState.pin = val;
+                  else if (cmd === 'LED') newState.led = val === '1';
+                  else if (cmd === 'PMT') newState.pmt = val === '1';
+                  else if (cmd === 'ASW') newState.asw = val === '1';
+                  else if (cmd === 'VOS') newState.vos = val === '1';
+                  else if (cmd === 'SOP') newState.sop = val === '1';
+                  else if (cmd === 'DLY') newState.dly = parseInt(val, 10);
+                  else if (cmd === 'LST') newState.lst = val.split(',');
+                  else if (cmd === 'POM') newState.pom = val;
                   else if (cmd === 'NAM') {
                     // NAM hex decode
                     try {
@@ -180,6 +188,24 @@ export function useLinkplay() {
                       newState.deviceName = new TextDecoder().decode(bytes);
                     } catch(e) {}
                   }
+                  return newState;
+                });
+              }
+            }
+            // Handle EQ Feedback: MCU+PAS+EQ:bass:05& or AXX+PAS+EQ:bass:05&
+            else if (payload.startsWith('AXX+PAS+EQ:') || payload.startsWith('MCU+PAS+EQ:')) {
+              const prefixLen = payload.startsWith('AXX+PAS+EQ:') ? 11 : 11;
+              const eqData = payload.substring(prefixLen).split('&')[0];
+              const parts = eqData.split(':');
+              if (parts.length >= 2) {
+                const type = parts[0];
+                const val = parseInt(parts[1], 10);
+                
+                setUartStatus(prev => {
+                  const newState = { ...prev };
+                  if (type === 'bass') newState.bass = (val - 5) * 2;
+                  else if (type === 'treble') newState.treble = (val - 5) * 2;
+                  else if (type === 'mid') newState.mid = (val - 5) * 2;
                   return newState;
                 });
               }

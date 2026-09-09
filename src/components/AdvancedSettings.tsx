@@ -16,6 +16,8 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
   
   const [maxVolume, setMaxVolume] = useState<number | null>(null);
   const [fixedVolume, setFixedVolume] = useState<number | null>(null);
+  const [volStep, setVolStep] = useState<number | null>(null);
+  const [muteDelay, setMuteDelay] = useState<number | null>(null);
   
   const [staticIp, setStaticIp] = useState('');
   const [staticMask, setStaticMask] = useState('255.255.255.0');
@@ -32,6 +34,8 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
     if (uartStatus?.pin) setPinCode(uartStatus.pin);
     if (uartStatus?.mxv !== undefined && maxVolume === null) setMaxVolume(uartStatus.mxv);
     if (uartStatus?.vof !== undefined && fixedVolume === null) setFixedVolume(uartStatus.vof);
+    if (uartStatus?.vst !== undefined && volStep === null) setVolStep(uartStatus.vst);
+    if (uartStatus?.dly !== undefined && muteDelay === null) setMuteDelay(uartStatus.dly);
 
     if (uartStatus?.ip && !staticIp) {
       setStaticIp(uartStatus.ip);
@@ -46,7 +50,8 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
     if (sendTcpCommand) {
       if (maxVolume !== null) sendTcpCommand(`MCU+PAS+RAKOIT:MXV:${maxVolume}&`);
       if (fixedVolume !== null) sendTcpCommand(`MCU+PAS+RAKOIT:VOF:${fixedVolume}&`);
-      alert("Volume limits saved.");
+      if (volStep !== null) sendTcpCommand(`MCU+PAS+RAKOIT:VST:${volStep}&`);
+      alert("Volume limits and steps saved.");
     }
   };
 
@@ -130,7 +135,10 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
           <h3 className="text-lg font-semibold text-white mb-6">Identity</h3>
           
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest">Device Name</h4>
+            <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest flex items-center justify-between">
+              <span>Device Name</span>
+              <span className="text-emerald-400 font-normal normal-case">{uartStatus?.deviceName || deviceStatus?.DeviceName || 'Unknown'}</span>
+            </h4>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -232,6 +240,134 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
           </div>
         </div>
 
+        {/* Device Behavior */}
+        <div className="bg-[#111] border border-[#222] rounded-2xl p-8 space-y-6">
+          <h3 className="text-lg font-semibold text-white mb-6">Device Behavior</h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-white">LED / Display</div>
+                <div className="text-xs text-zinc-500">Front panel indicators</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={uartStatus?.led ?? true}
+                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:LED:${e.target.checked ? '1' : '0'}&`)}
+                />
+                <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-[#222]">
+              <div>
+                <div className="text-sm font-medium text-white">Voice Prompts</div>
+                <div className="text-xs text-zinc-500">Reboots device when changed</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={uartStatus?.pmt ?? true}
+                  onChange={(e) => {
+                    if (window.confirm('Device will reboot to apply Voice Prompts setting. Continue?')) {
+                      sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:PMT:${e.target.checked ? '1' : '0'}&`);
+                    }
+                  }}
+                />
+                <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-[#222]">
+              <div>
+                <div className="text-sm font-medium text-white">Auto Switch Mode</div>
+                <div className="text-xs text-zinc-500">Return to prev source if lost</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={uartStatus?.asw ?? false}
+                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:ASW:${e.target.checked ? '1' : '0'}&`)}
+                />
+                <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-[#222]">
+              <div>
+                <div className="text-sm font-medium text-white">Volume Sync</div>
+                <div className="text-xs text-zinc-500">Sync master vol to slaves</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={uartStatus?.vos ?? false}
+                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:VOS:${e.target.checked ? '1' : '0'}&`)}
+                />
+                <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-[#222]">
+              <div>
+                <div className="text-sm font-medium text-white">Standby On Power</div>
+                <div className="text-xs text-zinc-500">Enter standby mode automatically</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={uartStatus?.sop ?? false}
+                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:SOP:${e.target.checked ? '1' : '0'}&`)}
+                />
+                <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            <div className="pt-4 border-t border-[#222]">
+              <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest flex justify-between mb-2">
+                <span>Auto-Mute Delay</span>
+                <span className="text-emerald-400">{muteDelay !== null ? muteDelay : '--'}</span>
+              </h4>
+              <div className="flex gap-2">
+                <input 
+                  type="number" 
+                  min="0" 
+                  max="32767" 
+                  value={muteDelay !== null ? muteDelay : 0}
+                  onChange={(e) => setMuteDelay(parseInt(e.target.value, 10))}
+                  placeholder="ms"
+                  className="flex-1 bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
+                />
+                <button onClick={() => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:DLY:${muteDelay}&`)} className="bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-300 border border-[#333] px-3 py-2 rounded-md transition-colors text-sm">Save</button>
+              </div>
+              <p className="text-[10px] text-zinc-600 mt-1">Delay before muting when no audio (0-32767)</p>
+            </div>
+
+            {uartStatus?.lst && uartStatus.lst.length > 0 && (
+              <div className="pt-4 border-t border-[#222]">
+                <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest mb-2">Power On Mode (Source)</h4>
+                <select
+                  value={uartStatus?.pom || ''}
+                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:POM:${e.target.value}&`)}
+                  className="w-full bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">Default (Remember Last)</option>
+                  {uartStatus.lst.map(src => (
+                    <option key={src} value={src}>{src}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-zinc-600 mt-1">Select the input source active upon power on.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Volume Limits */}
         <div className="bg-[#111] border border-[#222] rounded-2xl p-8 space-y-6">
           <h3 className="text-lg font-semibold text-white mb-6">Volume Output</h3>
@@ -243,13 +379,13 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
             </h4>
             <input 
               type="range" 
-              min="0" 
+              min="30" 
               max="100" 
               value={maxVolume !== null ? maxVolume : 100}
               onChange={(e) => setMaxVolume(parseInt(e.target.value, 10))}
               className="w-full h-2 bg-[#333] rounded-lg appearance-none cursor-pointer accent-emerald-500"
             />
-            <p className="text-xs text-zinc-600">Caps the maximum adjustable volume to protect speakers.</p>
+            <p className="text-xs text-zinc-600">Caps the maximum adjustable volume to protect speakers (30-100%).</p>
           </div>
 
           <div className="space-y-4 pt-4 border-t border-[#222]">
@@ -266,6 +402,22 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
               className="w-full h-2 bg-[#333] rounded-lg appearance-none cursor-pointer accent-emerald-500"
             />
             <p className="text-xs text-zinc-600">If set above 0, the device outputs at this fixed volume and volume controls are disabled (ideal for external preamps).</p>
+          </div>
+          
+          <div className="space-y-4 pt-4 border-t border-[#222]">
+            <h4 className="text-sm font-semibold text-zinc-500 uppercase tracking-widest flex justify-between">
+              <span>Volume Step (VST)</span>
+              <span className="text-emerald-400">{volStep !== null ? volStep : '--'}</span>
+            </h4>
+            <input 
+              type="range" 
+              min="1" 
+              max="20" 
+              value={volStep !== null ? volStep : 5}
+              onChange={(e) => setVolStep(parseInt(e.target.value, 10))}
+              className="w-full h-2 bg-[#333] rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            />
+            <p className="text-xs text-zinc-600">Adjusts how much the volume changes per click.</p>
           </div>
           
           <button onClick={handleSaveVolumeSettings} className="w-full bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-300 border border-[#333] px-4 py-2 rounded-md transition-colors text-sm flex items-center justify-center gap-2">
