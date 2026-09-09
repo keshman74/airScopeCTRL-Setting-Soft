@@ -19,6 +19,13 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
   const [volStep, setVolStep] = useState<number | null>(null);
   const [muteDelay, setMuteDelay] = useState<number | null>(null);
   
+  const [led, setLed] = useState<boolean>(true);
+  const [pmt, setPmt] = useState<boolean>(true);
+  const [asw, setAsw] = useState<boolean>(false);
+  const [vos, setVos] = useState<boolean>(false);
+  const [sop, setSop] = useState<boolean>(false);
+  const [pinOn, setPinOn] = useState<boolean>(false);
+  
   const [staticIp, setStaticIp] = useState('');
   const [staticMask, setStaticMask] = useState('255.255.255.0');
   const [staticGw, setStaticGw] = useState('');
@@ -36,6 +43,13 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
     if (uartStatus?.vof !== undefined && fixedVolume === null) setFixedVolume(uartStatus.vof);
     if (uartStatus?.vst !== undefined && volStep === null) setVolStep(uartStatus.vst);
     if (uartStatus?.dly !== undefined && muteDelay === null) setMuteDelay(uartStatus.dly);
+    
+    if (uartStatus?.led !== undefined) setLed(uartStatus.led);
+    if (uartStatus?.pmt !== undefined) setPmt(uartStatus.pmt);
+    if (uartStatus?.asw !== undefined) setAsw(uartStatus.asw);
+    if (uartStatus?.vos !== undefined) setVos(uartStatus.vos);
+    if (uartStatus?.sop !== undefined) setSop(uartStatus.sop);
+    if (uartStatus?.pinOn !== undefined) setPinOn(uartStatus.pinOn);
 
     if (uartStatus?.ip && !staticIp) {
       setStaticIp(uartStatus.ip);
@@ -82,11 +96,13 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
     }
   };
 
-  const handleTogglePin = () => {
+  const handleTogglePin = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
     if (sendTcpCommand) {
-      const newVal = uartStatus?.pinOn ? '0' : '1';
-      sendTcpCommand(`MCU+PAS+RAKOIT:COE:${newVal}&`);
-      alert("Device will reboot to apply PIN code setting.");
+      if (window.confirm("Device will reboot to apply PIN code setting. Continue?")) {
+        setPinOn(checked);
+        sendTcpCommand(`MCU+PAS+RAKOIT:COE:${checked ? '1' : '0'}&`);
+      }
     }
   };
 
@@ -172,7 +188,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
                 <Wifi size={18} className="text-zinc-400" />
                 <span className="text-sm font-medium text-zinc-300">Wi-Fi Signal</span>
               </div>
-              <span className="text-sm font-mono text-zinc-400">{uartStatus?.rssiWifi ? `${uartStatus.rssiWifi} dBm` : 'Unknown'}</span>
+              <span className="text-sm font-mono text-zinc-400">{uartStatus?.rssiWifi || deviceStatus?.rssi ? `${uartStatus?.rssiWifi || deviceStatus?.rssi} dBm` : 'Unknown'}</span>
             </div>
             
             <div className="flex items-center justify-between">
@@ -188,7 +204,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
                 <Network size={18} className="text-zinc-400" />
                 <span className="text-sm font-medium text-zinc-300">IP Address</span>
               </div>
-              <span className="text-sm font-mono text-zinc-400">{uartStatus?.ip || deviceStatus?.apcli0 || 'Unknown'}</span>
+              <span className="text-sm font-mono text-zinc-400">{uartStatus?.ip || (deviceStatus?.apcli0 && deviceStatus.apcli0 !== '0.0.0.0' ? deviceStatus.apcli0 : (deviceStatus?.eth2 && deviceStatus.eth2 !== '0.0.0.0' ? deviceStatus.eth2 : 'Unknown'))}</span>
             </div>
           </div>
           
@@ -215,7 +231,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
               <input 
                 type="checkbox" 
                 className="sr-only peer" 
-                checked={uartStatus?.pinOn || false}
+                checked={pinOn}
                 onChange={handleTogglePin}
               />
               <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -254,8 +270,12 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
                 <input 
                   type="checkbox" 
                   className="sr-only peer" 
-                  checked={uartStatus?.led ?? true}
-                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:LED:${e.target.checked ? '1' : '0'}&`)}
+                  checked={led}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setLed(checked);
+                    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:LED:${checked ? '1' : '0'}&`);
+                  }}
                 />
                 <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
@@ -270,10 +290,12 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
                 <input 
                   type="checkbox" 
                   className="sr-only peer" 
-                  checked={uartStatus?.pmt ?? true}
+                  checked={pmt}
                   onChange={(e) => {
                     if (window.confirm('Device will reboot to apply Voice Prompts setting. Continue?')) {
-                      sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:PMT:${e.target.checked ? '1' : '0'}&`);
+                      const checked = e.target.checked;
+                      setPmt(checked);
+                      if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:PMT:${checked ? '1' : '0'}&`);
                     }
                   }}
                 />
@@ -290,8 +312,12 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
                 <input 
                   type="checkbox" 
                   className="sr-only peer" 
-                  checked={uartStatus?.asw ?? false}
-                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:ASW:${e.target.checked ? '1' : '0'}&`)}
+                  checked={asw}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setAsw(checked);
+                    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:ASW:${checked ? '1' : '0'}&`);
+                  }}
                 />
                 <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
@@ -306,8 +332,12 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
                 <input 
                   type="checkbox" 
                   className="sr-only peer" 
-                  checked={uartStatus?.vos ?? false}
-                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:VOS:${e.target.checked ? '1' : '0'}&`)}
+                  checked={vos}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setVos(checked);
+                    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:VOS:${checked ? '1' : '0'}&`);
+                  }}
                 />
                 <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
@@ -322,8 +352,12 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sendC
                 <input 
                   type="checkbox" 
                   className="sr-only peer" 
-                  checked={uartStatus?.sop ?? false}
-                  onChange={(e) => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:SOP:${e.target.checked ? '1' : '0'}&`)}
+                  checked={sop}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setSop(checked);
+                    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:SOP:${checked ? '1' : '0'}&`);
+                  }}
                 />
                 <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
               </label>
