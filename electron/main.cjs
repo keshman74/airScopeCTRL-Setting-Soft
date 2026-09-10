@@ -20,6 +20,7 @@ function createWindow() {
   } else {
     // In production, we run the bundled Express server
     // which serves the static files and API proxies on port 3000
+    process.env.NODE_ENV = 'production';
     try {
       require(path.join(__dirname, '../dist/server.cjs'));
     } catch (e) {
