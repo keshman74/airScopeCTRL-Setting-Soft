@@ -284,7 +284,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
                     if (window.confirm('Device will reboot to apply Voice Prompts setting. Continue?')) {
                       const checked = e.target.checked;
                       setPmt(checked);
-                      if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:PMT:${checked ? '1' : '0'}&`);
+                      if (sendTcpCommand) sendTcpCommand(`MCU+PMT+00${checked ? '1' : '0'}`);
                     }
                   }}
                 />

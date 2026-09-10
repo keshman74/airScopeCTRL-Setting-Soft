@@ -5,10 +5,14 @@ import net from "net";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   // Disable strict TLS verification for internal network devices with self-signed certs
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok" });
+  });
 
   // Existing HTTP API Proxy Middleware
   app.get("/api/proxy", async (req, res) => {
@@ -34,7 +38,9 @@ async function startServer() {
 
   // Vite middleware for development
   let vite: any;
-  if (process.env.NODE_ENV !== "production") {
+  const isProd = process.env.NODE_ENV === "production" || !process.env.VITE_DEV_SERVER;
+  
+  if (process.env.NODE_ENV !== "production" && !process.env.K_SERVICE) {
     const { createServer: createViteServer } = await import("vite");
     vite = await createViteServer({
       server: { middlewareMode: true },
