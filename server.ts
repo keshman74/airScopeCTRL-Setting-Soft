@@ -5,7 +5,7 @@ import net from "net";
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = 3000;
 
   // Disable strict TLS verification for internal network devices with self-signed certs
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
