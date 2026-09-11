@@ -261,6 +261,7 @@ export function useLinkplay() {
     }
   }, [isTcpConnected]);
 
+  const pollRoundRobinRef = useRef(0);
   const fetchStatus = useCallback(async () => {
     if (!ip) return;
     try {
@@ -288,21 +289,18 @@ export function useLinkplay() {
       }
       
       // Also poll essential UART status for feedback sync
+      // Round-robin polling so we don't flood the UART MCU with 7 commands every 3 seconds (which drops packets and causes UI jitter)
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && isTcpConnected) {
         const queries = ['BAS', 'TRE', 'MID', 'BAL', 'EQE', 'CFE', 'CFF'];
-        // Send as a single batched string or rapidly, but let's just query a few essential ones
-        queries.forEach((cmd, idx) => {
-          setTimeout(() => {
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-              wsRef.current.send(JSON.stringify({ type: 'send_tcp', command: `MCU+PAS+RAKOIT:${cmd}&` }));
-            }
-          }, idx * 100);
-        });
+        const currentQuery = queries[pollRoundRobinRef.current];
+        pollRoundRobinRef.current = (pollRoundRobinRef.current + 1) % queries.length;
+        
+        wsRef.current.send(JSON.stringify({ type: 'send_tcp', command: `MCU+PAS+RAKOIT:${currentQuery}&` }));
       }
     } catch (e) {
       // error handled in sendCommand
     }
-  }, [ip, protocol, sendCommand]);
+  }, [ip, protocol, sendCommand, isTcpConnected]);
 
   const connect = useCallback((newIp: string, newProtocol: 'http' | 'https' = 'http') => {
     setIp(newIp);

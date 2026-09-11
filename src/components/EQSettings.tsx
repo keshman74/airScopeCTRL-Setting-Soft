@@ -46,7 +46,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
         sendCommand(`setPlayerCmd:EqSet:${type === 'bass' ? 'Bass' : 'Treble'}:${value}`);
       }
     }
-    setTimeout(() => setIsInteracting(false), 500); // Give device time to process and reply before syncing
+    setTimeout(() => setIsInteracting(false), 2500); // Give device time to process and reply before syncing
   };
 
   const handleToggleVbs = () => {
@@ -71,7 +71,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
 
   const handleCffRelease = (value: number) => {
     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:CFF:${value}&`);
-    setTimeout(() => setIsInteracting(false), 500);
+    setTimeout(() => setIsInteracting(false), 2500);
   };
 
   return (
