@@ -288,6 +288,14 @@ export function useLinkplay() {
         setDeviceStatus(dStatus);
       }
       
+      const dStatusEx = await sendCommand('getStatusEx');
+      if (dStatusEx && typeof dStatusEx === 'object' && dStatusEx.prompt_status !== undefined) {
+        setUartStatus(prev => {
+          if (!prev) return prev;
+          return { ...prev, pmt: dStatusEx.prompt_status === '1' || dStatusEx.prompt_status === 1 };
+        });
+      }
+      
       // Also poll essential UART status for feedback sync
       // Round-robin polling so we don't flood the UART MCU with 7 commands every 3 seconds (which drops packets and causes UI jitter)
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && isTcpConnected) {
