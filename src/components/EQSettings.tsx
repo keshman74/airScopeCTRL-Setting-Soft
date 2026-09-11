@@ -18,10 +18,11 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
   const [eqe, setEqe] = useState(false);
   const [cfe, setCfe] = useState(false);
   const [cff, setCff] = useState(50);
+  const [isInteracting, setIsInteracting] = useState(false);
   
   // Sync state with device via UART responses
   useEffect(() => {
-    if (uartStatus) {
+    if (uartStatus && !isInteracting) {
       if (uartStatus.bass !== undefined) setBass(uartStatus.bass);
       if (uartStatus.treble !== undefined) setTreble(uartStatus.treble);
       if (uartStatus.mid !== undefined) setMid(uartStatus.mid);
@@ -31,7 +32,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
       if (uartStatus.cfe !== undefined) setCfe(uartStatus.cfe);
       if (uartStatus.cff !== undefined) setCff(uartStatus.cff);
     }
-  }, [uartStatus]);
+  }, [uartStatus, isInteracting]);
   
   const handleSliderRelease = (type: 'bass' | 'treble' | 'mid' | 'balance', value: number) => {
     if (sendTcpCommand) {
@@ -45,6 +46,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
         sendCommand(`setPlayerCmd:EqSet:${type === 'bass' ? 'Bass' : 'Treble'}:${value}`);
       }
     }
+    setTimeout(() => setIsInteracting(false), 500); // Give device time to process and reply before syncing
   };
 
   const handleToggleVbs = () => {
@@ -69,6 +71,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
 
   const handleCffRelease = (value: number) => {
     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:CFF:${value}&`);
+    setTimeout(() => setIsInteracting(false), 500);
   };
 
   return (
@@ -130,7 +133,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
                 max="10"
                 value={bass}
                 onChange={(e) => setBass(parseInt(e.target.value))}
-                onMouseUp={(e) => handleSliderRelease('bass', parseInt((e.target as HTMLInputElement).value))}
+                onMouseDown={() => setIsInteracting(true)} onTouchStart={() => setIsInteracting(true)} onMouseUp={(e) => handleSliderRelease('bass', parseInt((e.target as HTMLInputElement).value))}
                 onTouchEnd={(e) => handleSliderRelease('bass', parseInt((e.target as HTMLInputElement).value))}
                 className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
@@ -152,7 +155,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
                 max="10"
                 value={mid}
                 onChange={(e) => setMid(parseInt(e.target.value))}
-                onMouseUp={(e) => handleSliderRelease('mid', parseInt((e.target as HTMLInputElement).value))}
+                onMouseDown={() => setIsInteracting(true)} onTouchStart={() => setIsInteracting(true)} onMouseUp={(e) => handleSliderRelease('mid', parseInt((e.target as HTMLInputElement).value))}
                 onTouchEnd={(e) => handleSliderRelease('mid', parseInt((e.target as HTMLInputElement).value))}
                 className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
@@ -174,7 +177,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
                 max="10"
                 value={treble}
                 onChange={(e) => setTreble(parseInt(e.target.value))}
-                onMouseUp={(e) => handleSliderRelease('treble', parseInt((e.target as HTMLInputElement).value))}
+                onMouseDown={() => setIsInteracting(true)} onTouchStart={() => setIsInteracting(true)} onMouseUp={(e) => handleSliderRelease('treble', parseInt((e.target as HTMLInputElement).value))}
                 onTouchEnd={(e) => handleSliderRelease('treble', parseInt((e.target as HTMLInputElement).value))}
                 className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
@@ -205,7 +208,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
                 step="5"
                 value={balance}
                 onChange={(e) => setBalance(parseInt(e.target.value))}
-                onMouseUp={(e) => handleSliderRelease('balance', parseInt((e.target as HTMLInputElement).value))}
+                onMouseDown={() => setIsInteracting(true)} onTouchStart={() => setIsInteracting(true)} onMouseUp={(e) => handleSliderRelease('balance', parseInt((e.target as HTMLInputElement).value))}
                 onTouchEnd={(e) => handleSliderRelease('balance', parseInt((e.target as HTMLInputElement).value))}
                 className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
               />
@@ -275,7 +278,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
                   step="10"
                   value={cff}
                   onChange={(e) => setCff(parseInt(e.target.value))}
-                  onMouseUp={(e) => handleCffRelease(parseInt((e.target as HTMLInputElement).value))}
+                  onMouseDown={() => setIsInteracting(true)} onTouchStart={() => setIsInteracting(true)} onMouseUp={(e) => handleCffRelease(parseInt((e.target as HTMLInputElement).value))}
                   onTouchEnd={(e) => handleCffRelease(parseInt((e.target as HTMLInputElement).value))}
                   className="w-full h-2 bg-[#222] rounded-lg appearance-none cursor-pointer accent-emerald-500"
                 />

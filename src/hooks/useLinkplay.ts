@@ -156,9 +156,9 @@ export function useLinkplay() {
                   else if (cmd === 'TRE') newState.treble = parseInt(val, 10);
                   else if (cmd === 'MID') newState.mid = parseInt(val, 10);
                   else if (cmd === 'BAL') newState.balance = parseInt(val, 10);
-                  else if (cmd === 'VBS') newState.vbs = val === '1';
-                  else if (cmd === 'EQE') newState.eqe = val === '1';
-                  else if (cmd === 'CFE') newState.cfe = val === '1';
+                  else if (cmd === 'VBS') newState.vbs = parseInt(val, 10) === 1;
+                  else if (cmd === 'EQE') newState.eqe = parseInt(val, 10) === 1;
+                  else if (cmd === 'CFE') newState.cfe = parseInt(val, 10) === 1;
                   else if (cmd === 'CFF') newState.cff = parseInt(val, 10);
                   else if (cmd === 'PEQ') newState.peqList = val;
                   else if (cmd === 'EQS') newState.eqs = parseInt(val, 10);
@@ -171,13 +171,13 @@ export function useLinkplay() {
                   else if (cmd === 'BSS') newState.rssiBt = val;
                   else if (cmd === 'IPA') newState.ip = val;
                   else if (cmd === 'TME') newState.time = val;
-                  else if (cmd === 'COE') newState.pinOn = val === '1';
+                  else if (cmd === 'COE') newState.pinOn = parseInt(val, 10) === 1;
                   else if (cmd === 'COD') newState.pin = val;
-                  else if (cmd === 'LED') newState.led = val === '1';
-                  else if (cmd === 'PMT') newState.pmt = val === '1';
-                  else if (cmd === 'ASW') newState.asw = val === '1';
-                  else if (cmd === 'VOS') newState.vos = val === '1';
-                  else if (cmd === 'SOP') newState.sop = val === '1';
+                  else if (cmd === 'LED') newState.led = parseInt(val, 10) === 1;
+                  else if (cmd === 'PMT') newState.pmt = parseInt(val, 10) === 1;
+                  else if (cmd === 'ASW') newState.asw = parseInt(val, 10) === 1;
+                  else if (cmd === 'VOS') newState.vos = parseInt(val, 10) === 1;
+                  else if (cmd === 'SOP') newState.sop = parseInt(val, 10) === 1;
                   else if (cmd === 'DLY') newState.dly = parseInt(val, 10);
                   else if (cmd === 'LST') newState.lst = val.split(',');
                   else if (cmd === 'POM') newState.pom = val;
@@ -285,6 +285,19 @@ export function useLinkplay() {
       const dStatus = await sendCommand('getStatus');
       if (dStatus && typeof dStatus === 'object') {
         setDeviceStatus(dStatus);
+      }
+      
+      // Also poll essential UART status for feedback sync
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && isTcpConnected) {
+        const queries = ['BAS', 'TRE', 'MID', 'BAL', 'EQE', 'CFE', 'CFF'];
+        // Send as a single batched string or rapidly, but let's just query a few essential ones
+        queries.forEach((cmd, idx) => {
+          setTimeout(() => {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+              wsRef.current.send(JSON.stringify({ type: 'send_tcp', command: `MCU+PAS+RAKOIT:${cmd}&` }));
+            }
+          }, idx * 100);
+        });
       }
     } catch (e) {
       // error handled in sendCommand
