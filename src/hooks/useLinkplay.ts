@@ -33,7 +33,7 @@ export function useLinkplay() {
     
     // Use secure websocket if the page itself is loaded over https (though it usually won't be in this preview context)
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}`;
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
@@ -282,7 +282,7 @@ export function useLinkplay() {
         }
       }
       
-      const dStatus = await sendCommand('getDeviceStatus');
+      const dStatus = await sendCommand('getStatus');
       if (dStatus && typeof dStatus === 'object') {
         setDeviceStatus(dStatus);
       }

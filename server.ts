@@ -57,7 +57,7 @@ async function startServer() {
   });
 
   // Initialize WebSocket server for TCP bridging
-  const wss = new WebSocketServer({ server });
+  const wss = new WebSocketServer({ server, path: '/ws' });
 
   wss.on('connection', (ws: WebSocket) => {
     let deviceSocket: net.Socket | null = null;

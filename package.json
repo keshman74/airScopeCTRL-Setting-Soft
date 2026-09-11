@@ -27,7 +27,10 @@
       "package.json"
     ],
     "mac": {
-      "category": "public.app-category.music"
+      "category": "public.app-category.music",
+      "extendInfo": {
+        "NSLocalNetworkUsageDescription": "This app requires access to your local network to communicate with your audio devices over TCP and HTTP."
+      }
     }
   },
   "dependencies": {

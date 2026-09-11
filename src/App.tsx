@@ -41,7 +41,12 @@ export default function App() {
         onDisconnect={disconnect}
       />
       
-      <main className="flex-1 h-full overflow-y-auto">
+      <main className="flex-1 h-full overflow-y-auto relative">
+        {isConnected && !isTcpConnected && (
+          <div className="absolute top-0 left-0 right-0 bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-500 px-4 py-2 text-sm flex items-center justify-center z-50">
+            <span>Warning: TCP Connection Failed. Advanced settings and EQ will be unavailable. Make sure no other app is connected to the device.</span>
+          </div>
+        )}
         {!isConnected ? (
           <ConnectionView onConnect={connect} error={error} />
         ) : (
