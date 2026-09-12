@@ -117,11 +117,11 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
           <div className="flex-1 w-full space-y-6">
             <div className="space-y-2 min-w-0">
               <div className="text-xs font-semibold text-emerald-400 tracking-widest uppercase truncate">
-                {status.mode === '010' || status.mode === '10' ? 'Wi-Fi Streaming' : 
+                {status.mode === '010' || status.mode === '10' || status.mode === '00' || status.mode === '0' ? 'Wi-Fi / Net' : 
                  status.mode === '020' || status.mode === '20' ? 'HTTP API' :
                  status.mode === '040' || status.mode === '40' ? 'Line-In' : 
                  status.mode === '041' || status.mode === '41' ? 'Bluetooth' : 
-                 status.mode === '043' || status.mode === '43' || status.mode === '040' ? 'Optical' : 
+                 status.mode === '043' || status.mode === '43' ? 'Optical' : 
                  status.mode === '011' || status.mode === '11' ? 'USB' : 
                  status.mode === '031' || status.mode === '31' ? 'Spotify Connect' : 
                  status.mode === '032' || status.mode === '32' ? 'Tidal Connect' : 'Playing'}
@@ -258,7 +258,7 @@ export function PlaybackView({ status, metaInfo, sendCommand, sendTcpCommand }: 
                 ].map(src => {
                   const currentPadded = currentMode.padStart(2, '0');
                   const srcPadded = src.numericMode.padStart(2, '0');
-                  const isActive = currentPadded === srcPadded || (src.id === 'udisk' && (currentPadded === '11' || currentPadded === '011'));
+                  const isActive = currentPadded === srcPadded ||                     (src.id === 'udisk' && (currentPadded === '11' || currentPadded === '011')) ||                    (src.id === 'wifi' && (currentPadded === '00' || currentPadded === '10' || currentPadded === '010'));
                   
                   return (
                     <button

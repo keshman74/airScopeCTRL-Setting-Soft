@@ -18,7 +18,8 @@ export default function App() {
   const [currentView, setCurrentView] = useState<ViewMode>('playback');
   const { 
     ip, 
-    isConnected, 
+    isConnected,
+    isConnecting, 
     isTcpConnected,
     playerStatus, 
     deviceStatus,
@@ -29,7 +30,8 @@ export default function App() {
     connect, 
     disconnect, 
     sendCommand,
-    sendTcpCommand
+    sendTcpCommand,
+    updateUartStatus
   } = useLinkplay();
 
   return (
@@ -48,17 +50,17 @@ export default function App() {
           </div>
         )}
         {!isConnected ? (
-          <ConnectionView onConnect={connect} error={error} />
+          <ConnectionView onConnect={connect} error={error} isConnecting={isConnecting} />
         ) : (
           <div className="h-full">
             {currentView === 'playback' && (
               <PlaybackView status={playerStatus} metaInfo={metaInfo} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
             )}
             {currentView === 'eq' && (
-              <EQSettings status={playerStatus} uartStatus={uartStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
+              <EQSettings status={playerStatus} uartStatus={uartStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} updateUartStatus={updateUartStatus} />
             )}
             {currentView === 'advanced' && (
-              <AdvancedSettings deviceStatus={deviceStatus} sysInfo={sysInfo} uartStatus={uartStatus} playerStatus={playerStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} />
+              <AdvancedSettings deviceStatus={deviceStatus} sysInfo={sysInfo} uartStatus={uartStatus} playerStatus={playerStatus} sendCommand={sendCommand} sendTcpCommand={sendTcpCommand} updateUartStatus={updateUartStatus} />
             )}
             {currentView === 'system' && (
               <SystemInfo deviceStatus={deviceStatus} sysInfo={sysInfo} />

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Wifi, AlertCircle, Lock } from 'lucide-react';
+import { Wifi, AlertCircle, Lock, Loader2 } from 'lucide-react';
 
 interface ConnectionViewProps {
   onConnect: (ip: string, protocol: 'http' | 'https') => void;
   error: string | null;
+  isConnecting?: boolean;
 }
 
-export function ConnectionView({ onConnect, error }: ConnectionViewProps) {
+export function ConnectionView({ onConnect, error, isConnecting }: ConnectionViewProps) {
   const [ip, setIp] = useState('');
   const [protocol, setProtocol] = useState<'http' | 'https'>('http');
 
@@ -74,10 +75,11 @@ export function ConnectionView({ onConnect, error }: ConnectionViewProps) {
 
           <button
             type="submit"
-            disabled={!ip.trim()}
-            className="w-full bg-zinc-100 text-zinc-900 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-md font-semibold tracking-wide transition-colors"
+            disabled={!ip.trim() || isConnecting}
+            className="w-full bg-zinc-100 text-zinc-900 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed py-3 rounded-md font-semibold tracking-wide transition-colors flex justify-center items-center gap-2"
           >
-            Connect
+            {isConnecting && <Loader2 className="w-5 h-5 animate-spin" />}
+            {isConnecting ? 'Connecting...' : 'Connect'}
           </button>
         </form>
         

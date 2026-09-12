@@ -9,9 +9,10 @@ interface AdvancedSettingsProps {
   sysInfo?: SysInfo | null;
   sendCommand: (cmd: string) => Promise<any>;
   sendTcpCommand?: (cmd: string) => void;
+  updateUartStatus?: (updates: Partial<UartStatus>) => void;
 }
 
-export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysInfo, sendCommand, sendTcpCommand }: AdvancedSettingsProps) {
+export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysInfo, sendCommand, sendTcpCommand, updateUartStatus }: AdvancedSettingsProps) {
   const [deviceName, setDeviceName] = useState('');
   const [pinCode, setPinCode] = useState('');
   
@@ -64,6 +65,13 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
   }, [deviceStatus, uartStatus]);
 
   const handleSaveVolumeSettings = () => {
+    if (updateUartStatus) {
+      const updates: Partial<UartStatus> = {};
+      if (maxVolume !== null) updates.mxv = maxVolume;
+      if (fixedVolume !== null) updates.vof = fixedVolume;
+      if (volStep !== null) updates.vst = volStep;
+      updateUartStatus(updates);
+    }
     if (sendTcpCommand) {
       if (maxVolume !== null) sendTcpCommand(`MCU+PAS+RAKOIT:MXV:${maxVolume}&`);
       if (fixedVolume !== null) sendTcpCommand(`MCU+PAS+RAKOIT:VOF:${fixedVolume}&`);
@@ -82,6 +90,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
   };
 
   const handleSaveDeviceName = () => {
+    if (updateUartStatus) updateUartStatus({ deviceName });
     if (deviceName.trim() && sendTcpCommand) {
       // Encode to hex for NAM command
       const hexName = Array.from(new TextEncoder().encode(deviceName))
@@ -94,6 +103,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
   };
 
   const handleSavePin = () => {
+    if (updateUartStatus) updateUartStatus({ pin: pinCode });
     if (pinCode.trim() && sendTcpCommand) {
       sendTcpCommand(`MCU+PAS+RAKOIT:COD:${pinCode}&`);
     }
@@ -104,6 +114,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
     if (sendTcpCommand) {
       if (window.confirm("Device will reboot to apply PIN code setting. Continue?")) {
         setPinOn(checked);
+        if (updateUartStatus) updateUartStatus({ pinOn: checked });
         sendTcpCommand(`MCU+PAS+RAKOIT:COE:${checked ? '1' : '0'}&`);
       }
     }
@@ -263,6 +274,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setLed(checked);
+                    if (updateUartStatus) updateUartStatus({ led: checked });
                     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:LED:${checked ? '1' : '0'}&`);
                   }}
                 />
@@ -284,6 +296,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
                     if (window.confirm('Device will reboot to apply Voice Prompts setting. Continue?')) {
                       const checked = e.target.checked;
                       setPmt(checked);
+                      if (updateUartStatus) updateUartStatus({ pmt: checked });
                       if (sendTcpCommand) sendTcpCommand(`MCU+PMT+00${checked ? '1' : '0'}`);
                     }
                   }}
@@ -305,6 +318,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setAsw(checked);
+                    if (updateUartStatus) updateUartStatus({ asw: checked });
                     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:ASW:${checked ? '1' : '0'}&`);
                   }}
                 />
@@ -325,6 +339,7 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setVos(checked);
+                    if (updateUartStatus) updateUartStatus({ vos: checked });
                     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:VOS:${checked ? '1' : '0'}&`);
                   }}
                 />
@@ -345,7 +360,8 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
                   onChange={(e) => {
                     const checked = e.target.checked;
                     setSop(checked);
-                    if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:SOP:${checked ? '1' : '0'}&`);
+                    if (updateUartStatus) updateUartStatus({ sop: checked });
+                    if (sendTcpCommand) sendTcpCommand(`MCU+SOP+00${checked ? '1' : '0'}`);
                   }}
                 />
                 <div className="w-11 h-6 bg-[#333] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -367,7 +383,10 @@ export function AdvancedSettings({ deviceStatus, playerStatus, uartStatus, sysIn
                   placeholder="ms"
                   className="flex-1 bg-[#0a0a0a] border border-[#333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
                 />
-                <button onClick={() => sendTcpCommand && sendTcpCommand(`MCU+PAS+RAKOIT:DLY:${muteDelay}&`)} className="bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-300 border border-[#333] px-3 py-2 rounded-md transition-colors text-sm">Save</button>
+                <button onClick={() => {
+                  if (updateUartStatus && muteDelay !== null) updateUartStatus({ dly: muteDelay });
+                  if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:DLY:${muteDelay}&`);
+                }} className="bg-[#1a1a1a] hover:bg-[#2a2a2a] text-zinc-300 border border-[#333] px-3 py-2 rounded-md transition-colors text-sm">Save</button>
               </div>
               <p className="text-[10px] text-zinc-600 mt-1">Delay before muting when no audio (0-32767)</p>
             </div>

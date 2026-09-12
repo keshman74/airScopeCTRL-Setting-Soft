@@ -7,17 +7,19 @@ interface EQSettingsProps {
   uartStatus?: UartStatus;
   sendCommand: (cmd: string) => void;
   sendTcpCommand?: (cmd: string) => void;
+  updateUartStatus?: (updates: Partial<UartStatus>) => void;
 }
 
-export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: EQSettingsProps) {
-  const [bass, setBass] = useState(0);
-  const [treble, setTreble] = useState(0);
-  const [mid, setMid] = useState(0);
-  const [balance, setBalance] = useState(0);
-  const [vbs, setVbs] = useState(false);
-  const [eqe, setEqe] = useState(false);
-  const [cfe, setCfe] = useState(false);
-  const [cff, setCff] = useState(50);
+export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand, updateUartStatus }: EQSettingsProps) {
+  // Use uartStatus to initialize state directly if available, rather than hardcoding 0
+  const [bass, setBass] = useState(uartStatus?.bass ?? 0);
+  const [treble, setTreble] = useState(uartStatus?.treble ?? 0);
+  const [mid, setMid] = useState(uartStatus?.mid ?? 0);
+  const [balance, setBalance] = useState(uartStatus?.balance ?? 0);
+  const [vbs, setVbs] = useState(uartStatus?.vbs ?? false);
+  const [eqe, setEqe] = useState(uartStatus?.eqe ?? false);
+  const [cfe, setCfe] = useState(uartStatus?.cfe ?? false);
+  const [cff, setCff] = useState(uartStatus?.cff ?? 50);
   const [isInteracting, setIsInteracting] = useState(false);
   
   // Sync state with device via UART responses
@@ -35,6 +37,11 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
   }, [uartStatus, isInteracting]);
   
   const handleSliderRelease = (type: 'bass' | 'treble' | 'mid' | 'balance', value: number) => {
+    // Optimistically update global UART state so it persists across tab switches
+    if (updateUartStatus) {
+      updateUartStatus({ [type]: value });
+    }
+
     if (sendTcpCommand) {
       if (type === 'bass') sendTcpCommand(`MCU+PAS+RAKOIT:BAS:${value}&`);
       if (type === 'treble') sendTcpCommand(`MCU+PAS+RAKOIT:TRE:${value}&`);
@@ -52,6 +59,7 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
   const handleToggleVbs = () => {
     const newVal = !vbs;
     setVbs(newVal);
+    if (updateUartStatus) updateUartStatus({ vbs: newVal });
     if (sendTcpCommand) {
       sendTcpCommand(`MCU+PAS+RAKOIT:VBS:${newVal ? '1' : '0'}&`);
     }
@@ -60,16 +68,19 @@ export function EQSettings({ status, uartStatus, sendCommand, sendTcpCommand }: 
   const handleToggleEqe = () => {
     const newVal = !eqe;
     setEqe(newVal);
+    if (updateUartStatus) updateUartStatus({ eqe: newVal });
     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:EQE:${newVal ? '1' : '0'}&`);
   };
 
   const handleToggleCfe = () => {
     const newVal = !cfe;
     setCfe(newVal);
+    if (updateUartStatus) updateUartStatus({ cfe: newVal });
     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:CFE:${newVal ? '1' : '0'}&`);
   };
 
   const handleCffRelease = (value: number) => {
+    if (updateUartStatus) updateUartStatus({ cff: value });
     if (sendTcpCommand) sendTcpCommand(`MCU+PAS+RAKOIT:CFF:${value}&`);
     setTimeout(() => setIsInteracting(false), 2500);
   };

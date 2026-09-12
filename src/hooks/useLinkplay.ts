@@ -5,6 +5,7 @@ export function useLinkplay() {
   const [ip, setIp] = useState<string>('');
   const [protocol, setProtocol] = useState<'http' | 'https'>('http');
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isTcpConnected, setIsTcpConnected] = useState(false);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
@@ -62,10 +63,11 @@ export function useLinkplay() {
           const text = msg.data as string;
           console.log('[TCP Received]', text);
           
-          // Strip any binary headers and find AXX+
-          const axxIndex = text.indexOf('AXX+');
-          if (axxIndex !== -1) {
-            const payload = text.substring(axxIndex);
+          // Strip any binary headers and find valid start
+          let payload = text;
+          const validIndex = text.search(/(AXX\+|MCU\+)/);
+          if (validIndex !== -1) {
+            payload = text.substring(validIndex);
             
             // Handle Volume: AXX+VOL+050
             if (payload.startsWith('AXX+VOL+')) {
@@ -132,7 +134,7 @@ export function useLinkplay() {
               } catch(e) {}
             }
             // Handle System Info: AXX+INF+INF{"uuid":"..."}
-            else if (payload.startsWith('AXX+INF+INF')) {
+            else if (payload.startsWith('AXX+INF+INF') || payload.startsWith('MCU+INF+INF')) {
               try {
                 const jsonStart = payload.indexOf('{');
                 const jsonEnd = payload.lastIndexOf('}');
@@ -142,9 +144,10 @@ export function useLinkplay() {
                 }
               } catch(e) {}
             }
-            // Handle UART Passthrough Responses: AXX+PAS+RAKOIT:BAS:2&
-            else if (payload.startsWith('AXX+PAS+RAKOIT:')) {
-              const uartData = payload.substring(15).split('&')[0];
+            // Handle UART Passthrough Responses: AXX+PAS+RAKOIT:BAS:2& or MCU+PAS+RAKOIT:BAS:2&
+            else if (payload.startsWith('AXX+PAS+RAKOIT:') || payload.startsWith('MCU+PAS+RAKOIT:')) {
+              const prefixLen = payload.startsWith('AXX+PAS+RAKOIT:') ? 15 : 15;
+              const uartData = payload.substring(prefixLen).split('&')[0];
               const parts = uartData.split(':');
               if (parts.length >= 2) {
                 const cmd = parts[0];
@@ -249,6 +252,7 @@ export function useLinkplay() {
     } catch (err: any) {
       setError(err.message || 'Failed to connect. The cloud server cannot reach your local network IP. Download the app to run locally.');
       setIsConnected(false);
+      setIsConnecting(false);
       return null;
     }
   }, [ip, protocol]);
@@ -269,6 +273,7 @@ export function useLinkplay() {
       if (pStatus && typeof pStatus === 'object') {
         setPlayerStatus(pStatus);
         setIsConnected(true);
+        setIsConnecting(false);
         setError(null);
         
         if (pStatus.status === 'play') {
@@ -299,7 +304,7 @@ export function useLinkplay() {
       // Also poll essential UART status for feedback sync
       // Round-robin polling so we don't flood the UART MCU with 7 commands every 3 seconds (which drops packets and causes UI jitter)
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && isTcpConnected) {
-        const queries = ['BAS', 'TRE', 'MID', 'BAL', 'EQE', 'CFE', 'CFF'];
+        const queries = ['BAS', 'TRE', 'MID', 'BAL'];
         const currentQuery = queries[pollRoundRobinRef.current];
         pollRoundRobinRef.current = (pollRoundRobinRef.current + 1) % queries.length;
         
@@ -313,6 +318,7 @@ export function useLinkplay() {
   const connect = useCallback((newIp: string, newProtocol: 'http' | 'https' = 'http') => {
     setIp(newIp);
     setProtocol(newProtocol);
+    setIsConnecting(true);
     setIsPolling(true);
     initWebSocket(newIp);
   }, [initWebSocket]);
@@ -320,6 +326,7 @@ export function useLinkplay() {
   const disconnect = useCallback(() => {
     setIp('');
     setIsConnected(false);
+    setIsConnecting(false);
     setIsTcpConnected(false);
     setIsPolling(false);
     setPlayerStatus(null);
@@ -347,9 +354,14 @@ export function useLinkplay() {
     };
   }, [isPolling, fetchStatus]);
 
+  const updateUartStatus = useCallback((updates: Partial<UartStatus>) => {
+    setUartStatus(prev => ({ ...prev, ...updates }));
+  }, []);
+
   return {
     ip,
     isConnected,
+    isConnecting,
     isTcpConnected,
     playerStatus,
     deviceStatus,
@@ -361,6 +373,7 @@ export function useLinkplay() {
     disconnect,
     sendCommand,
     sendTcpCommand,
-    fetchStatus
+    fetchStatus,
+    updateUartStatus
   };
 }

@@ -3,8 +3,15 @@ import path from "path";
 import { WebSocketServer, WebSocket } from "ws";
 import net from "net";
 
+// Force NODE_ENV to production if we are running the compiled server
+const isProduction = process.env.NODE_ENV === "production" || process.argv[1]?.endsWith('server.cjs');
+if (isProduction) {
+  process.env.NODE_ENV = 'production';
+}
+
 async function startServer() {
   const app = express();
+  
   const PORT = 3000;
 
   // Disable strict TLS verification for internal network devices with self-signed certs
@@ -37,7 +44,7 @@ async function startServer() {
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -54,6 +61,13 @@ async function startServer() {
 
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+  }).on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use. Please kill the process using this port.`);
+      process.exit(1);
+    } else {
+      console.error(err);
+    }
   });
 
   // Initialize WebSocket server for TCP bridging
@@ -173,4 +187,7 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
